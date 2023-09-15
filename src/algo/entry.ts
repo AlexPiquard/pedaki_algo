@@ -7,6 +7,7 @@ import {
 } from "./genetic.ts";
 import {Student} from "./student.ts";
 import {Input} from "./input.ts";
+import {groupTogetherBalanceValue} from "./sort/group_together_balance.ts";
 
 export default class Entry {
   public classes: Class[]
@@ -31,7 +32,7 @@ export default class Entry {
   }
 
   public static from(students: Student[], size: number): Entry {
-    const classes = students.length / size
+    const classes = Math.ceil(students.length / size)
     return new Entry(Array.from({length: classes}, (_v, k) => new Class(students.slice(k * size, k * size + size))))
   }
 
@@ -106,7 +107,6 @@ export default class Entry {
       let m = 0, f = 0
       const levelsCount: {[level: string]: number} = {}
       const levelsSum: {[level: string]: number} = {}
-      const almostFullAmount = (input.counts.max_students / 4) * 3
 
       for (const s of c.getStudents()) {
         if (s.gender === "M") m++
@@ -151,34 +151,28 @@ export default class Entry {
           this.v += (levelInput.priority ?? 1) * (levelInput.count.priority ?? 1)
 
         // Respect des relations entre niveaux.
-        for (const key of levelInput.relations.forbidden?.list ?? []) {
+        for (const key of levelInput?.relations?.forbidden?.list ?? []) {
           if (key in levelsCount) this.v += (levelInput.priority ?? 1) * (levelInput.relations.forbidden?.priority ?? 1)
         }
 
         // Respect de l'équilibrage des niveaux pour ceux concernés.
         if (levelInput.sort === "balance_level")
           this.v += (Math.abs(((MIN_LEVEL + MAX_LEVEL) / 2) - (levelsSum[levelKey] / c.getStudents().length))) * (levelInput.priority ?? 1)
-
-        // Respect du regroupement des options, pour celles concernées.
-        // Les classes avec moins de 3/4 d'élèves ayant l'option sont pénalisées proportionnellement au nombre d'élèves concernés.
-        if (levelInput.sort === "group_together_balance" && levelsCount[levelKey] < almostFullAmount)
-          this.v += levelsCount[levelKey] * (input.levels[levelKey].priority ?? 1)
       }
     }
 
     // Respect du regroupement des options, pour celles concernées.
-    // Minimisation du nombre de classes contenant chaque option à regrouper.
-    for (const [levelKey, classes] of Object.entries(classesOfLevels)) {
-      this.v += (classes.length * 100) * (input.levels[levelKey].priority ?? 1)
+    for (const [levelKey] of Object.entries(classesOfLevels)) {
+      this.v += groupTogetherBalanceValue(this, input, levelKey)
     }
 
     return this.v
   }
 
-  toString() {
+  toString(...keysMask: string[]) {
     let str = ""
     for (const c of this.classes) {
-      str += "- " + c.toString() + "\n"
+      str += "- " + c.toString(...keysMask) + "\n"
     }
 
     return str

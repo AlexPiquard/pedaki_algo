@@ -27,7 +27,7 @@ export default class Class {
     return false
   }
 
-  toString() {
+  toString(...keysMask: string[]) {
     const countGender: {[gender: string]: number} = {};
     const countLevel: {[level: string]: number} = {}
 
@@ -42,10 +42,12 @@ export default class Class {
     let str = `Class{students: ${this.students.length}, `
 
     for (const gender of ["M", "F"]) {
+      if (!keysMask.includes(gender)) continue
       str += `${gender}: ${countGender[gender]}, `
     }
 
     for (const [levelKey, count] of Object.entries(countLevel)) {
+      if (!keysMask.includes(levelKey)) continue
       str += `${levelKey}: ${count}, `
     }
 

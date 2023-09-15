@@ -10,9 +10,11 @@ export const CLASS_WRONG_SIZE_MULTIPLIER = 100
 export const CLASS_WRONG_AMOUNT_MULTIPLIER = 1000
 export const MIN_LEVEL = 0
 export const MAX_LEVEL = 5
-const GENERATIONS = 2500
+const GENERATIONS = 1000
 const GENERATED_CHILDREN_PER_GENERATION = 50;
 const GENERATION_SIZE = 50
+
+// TODO equilibrer les classes depuis input
 
 export default class Genetic {
 
