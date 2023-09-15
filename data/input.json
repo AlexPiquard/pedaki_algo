@@ -1,0 +1,43 @@
+{
+  "counts": {
+    "min_classes": 3,
+    "max_classes": 30,
+    "max_students": 35
+  },
+  "relations": {
+    "positive_priority": 0,
+    "negative_priority": 0,
+    "required_priority": 0,
+    "forbidden_priority": 0
+  },
+  "birthdate": {
+  },
+  "gender": {
+    "priority": 0,
+    "parity": {
+      "M": 50,
+      "F": 50
+    }
+  },
+  "levels": {
+    "maths": {
+      "priority": 0,
+      "sort": "balance_level",
+      "count": {
+        "min": 3
+      }
+    },
+    "allemand": {
+      "priority": 2,
+      "sort": "group_together_balance",
+      "relations": {
+        "forbidden": {
+          "priority": 1,
+          "list": [
+            "badminton"
+          ]
+        }
+      }
+    }
+  }
+}

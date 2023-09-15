@@ -1,14 +1,15 @@
 import Class from "./class.ts";
 import {
-  CHANCE_TO_MOVE_ALONE, CLASS_SIZE_EQUALITY_MULTIPLIER,
-  FRIEND_MULTIPLIER,
-  LANGUAGE_MULTIPLIER, LanguageOption, MAX_STUDENTS_TO_MOVE,
-  SPECIALIZATION_MULTIPLIER,
-  Student
+  CHANCE_TO_MOVE_ALONE,
+  CLASS_WRONG_AMOUNT_MULTIPLIER,
+  CLASS_WRONG_SIZE_MULTIPLIER, MAX_LEVEL,
+  MAX_STUDENTS_TO_MOVE, MIN_LEVEL,
 } from "./genetic.ts";
+import {Student} from "./student.ts";
+import {Input} from "./input.ts";
 
 export default class Entry {
-  private classes: Class[]
+  public classes: Class[]
   private v?: number
 
   constructor(classes: Class[]) {
@@ -29,89 +30,146 @@ export default class Entry {
     return null
   }
 
-  public static from(students: Student[], classes: number): Entry {
-    const size = Math.ceil(students.length / classes);
+  public static from(students: Student[], size: number): Entry {
+    const classes = students.length / size
     return new Entry(Array.from({length: classes}, (_v, k) => new Class(students.slice(k * size, k * size + size))))
   }
 
   /**
    * Faire un changement aléatoire dans la configuration actuelle et retourner une nouvelle disposition.
    */
-  public randomChange(): Entry {
+  public randomChange(maxClasses: number, maxStudents: number): Entry {
     const entry = this.clone()
     const allStudents = entry.classes.map(c => c.getStudents()).flat()
     const moves = Math.floor(Math.random() * MAX_STUDENTS_TO_MOVE) + 1;
 
     for (let i = 0; i < moves; ++i) {
-      // Choisir un élève parmi toutes les classes.
-      const student = allStudents[Math.floor(Math.random() * (allStudents.length))]
-      const studentClass = entry.searchStudent(student)
+      this.randomChangeMove(entry, allStudents, maxClasses, maxStudents)
+    }
 
-      // Choisir une autre classe, différente de celle choisie précédemment.
-      const otherClass = entry.classes.filter((_c, i) => i !== studentClass?.index)[Math.floor(Math.random() * (entry.classes.length - 1))]
+    return entry
+  }
 
-      // Déplacer l'élève dans l'autre classe.
-      studentClass?.class?.removeStudent(student)
-      otherClass.addStudent(student)
+  private randomChangeMove(entry: Entry, allStudents: Student[], maxClasses: number, maxStudents: number): Entry {
+    // Choisir un élève parmi toutes les classes.
+    const student = allStudents[Math.floor(Math.random() * (allStudents.length))]
+    const studentClass = entry.searchStudent(student) as {class: Class, index: number}
 
-      if (Math.random() > CHANCE_TO_MOVE_ALONE) {
-        // Echanger l'élève avec un autre de l'autre classe.
-        const otherStudent = otherClass.getStudents()[Math.floor(Math.random() * otherClass.getStudents().length)]
-        studentClass?.class?.addStudent(otherStudent)
-        otherClass.removeStudent(otherStudent)
-      }
+    // Choisir une autre classe, différente de celle choisie précédemment.
+    let otherClass = entry.classes.filter((_c, i) => i !== studentClass?.index)[Math.floor(Math.random() * (entry.classes.length - (maxClasses === entry.classes.length ? 1 : 0)))]
+    if (!otherClass) {
+      otherClass = new Class([])
+      entry.classes.push(otherClass)
+    }
+
+    // Si on ne peut pas ajouter d'élève dans la classe choisie, on recommence.
+    if (otherClass.getStudents().length >= maxStudents)
+      return this.randomChangeMove(entry, allStudents, maxClasses, maxStudents)
+
+    // Déplacer l'élève dans l'autre classe.
+    studentClass?.class?.removeStudent(student);
+    otherClass.addStudent(student)
+
+    if (otherClass.getStudents().length && Math.random() > CHANCE_TO_MOVE_ALONE) {
+      // Echanger l'élève avec un autre de l'autre classe.
+      const otherStudent = otherClass.getStudents()[Math.floor(Math.random() * otherClass.getStudents().length)]
+      studentClass?.class?.addStudent(otherStudent)
+      otherClass.removeStudent(otherStudent)
+    } else if (studentClass?.class.getStudents().length === 0) {
+      // Supprimer la classe s'il n'y a plus d'élèves dedans.
+      entry.classes.splice(studentClass?.index, 1)
     }
 
     return entry
   }
 
   /**
-   * Evaluer la qualité de cette configuration.
+   * Evaluer la qualité de cette configuration par rapport aux paramètres d'entrée de l'algorithme.
    */
-  public value() {
+  public value(input: Input) {
     if (this.v) return this.v
     this.v = 0
 
-    // Egalité de la taille des classes.
-    for (const c1 of this.classes) {
-      for (const c2 of this.classes) {
-        this.v -= Math.abs(c1.getStudents().length - c2.getStudents().length) * CLASS_SIZE_EQUALITY_MULTIPLIER
-      }
-    }
+    // Respect du nombre de classes.
+    if (this.classes.length < (input.counts.min_classes ?? 1) || this.classes.length > input.counts.max_classes)
+      this.v += CLASS_WRONG_AMOUNT_MULTIPLIER
 
-    // Spécialités regroupées par classe.
-    for (const c of this.classes) {
-      for (const s1 of c.getStudents()) {
-        for (const s2 of c.getStudents()) {
-          if (s1 === s2) continue
+    const classesOfLevels: {[level: string]: number[]} = {}
 
-          if (s1.options.specialization !== s2.options.specialization)
-            this.v -= SPECIALIZATION_MULTIPLIER
-        }
-      }
-    }
+    for (const [i, c] of Object.entries(this.classes)) {
+      const classkey = Number.parseInt(i)
 
-    // Langues regroupées par classe.
-    for (const c of this.classes) {
-      // Trouver le nombre de langues différentes
-      const languages: LanguageOption[] = []
-      for (const student of c.getStudents()) {
-        for (const language of student.options.languages) {
-          if (!languages.includes(language)) {
-            languages.push(language)
-            this.v -= LANGUAGE_MULTIPLIER
+      // Respect de la taille des classes.
+      if (c.getStudents().length < (input.counts.min_students ?? 1) || (input.counts.max_students && c.getStudents().length > input.counts.max_students))
+        this.v += CLASS_WRONG_SIZE_MULTIPLIER
+
+      let m = 0, f = 0
+      const levelsCount: {[level: string]: number} = {}
+      const levelsSum: {[level: string]: number} = {}
+      const almostFullAmount = (input.counts.max_students / 4) * 3
+
+      for (const s of c.getStudents()) {
+        if (s.gender === "M") m++
+        else if (s.gender === "F") f++
+
+        for (const levelKey of Object.keys(s.levels)) {
+          levelsCount[levelKey] = levelsCount[levelKey] ? levelsCount[levelKey] + 1 : 1
+          levelsSum[levelKey] = levelsSum[levelKey] ? levelsSum[levelKey] + s.levels[levelKey] : s.levels[levelKey]
+          if (!classesOfLevels[levelKey]?.includes?.(classkey) && input.levels[levelKey]?.sort === "group_together_balance") {
+            if (!classesOfLevels[levelKey]) classesOfLevels[levelKey] = [classkey]
+            else classesOfLevels[levelKey].push(classkey)
           }
         }
+
+        // Respect des relations entre élèves.
+        for (const f of (s.relations?.positive ?? [])) {
+          if (!c.hasStudent(f)) this.v += (input.relations?.positive_priority ?? 1)
+        }
+        for (const f of (s.relations?.negative ?? [])) {
+          if (c.hasStudent(f)) this.v += (input.relations?.negative_priority ?? 1)
+        }
+        for (const f of (s.relations?.required ?? [])) {
+          if (!c.hasStudent(f)) this.v += (input.relations?.required_priority ?? 1)
+        }
+        for (const f of (s.relations?.forbidden ?? [])) {
+          if (c.hasStudent(f)) this.v += (input.relations?.forbidden_priority ?? 1)
+        }
+      }
+
+      // Respect de la parité.
+      if (input.gender?.parity.M && input.gender.parity.F) {
+        this.v += Math.abs(m - (c.getStudents().length * (input.gender?.parity.M / 100))) * (input.gender?.priority ?? 1)
+        this.v += Math.abs(f - (c.getStudents().length * (input.gender?.parity.F / 100))) * (input.gender?.priority ?? 1)
+      }
+
+      // Respect des niveaux.
+      for (const [levelKey, levelInput] of Object.entries(input.levels)) {
+        if (!(levelKey in levelsCount)) continue
+
+        // Respect du dénombrement des niveaux pour chaque classe.
+        if ((levelInput.count?.min !== undefined && levelsCount[levelKey] < levelInput.count.min) || (levelInput.count?.max !== undefined && levelsCount[levelKey] > levelInput.count.max))
+          this.v += (levelInput.priority ?? 1) * (levelInput.count.priority ?? 1)
+
+        // Respect des relations entre niveaux.
+        for (const key of levelInput.relations.forbidden?.list ?? []) {
+          if (key in levelsCount) this.v += (levelInput.priority ?? 1) * (levelInput.relations.forbidden?.priority ?? 1)
+        }
+
+        // Respect de l'équilibrage des niveaux pour ceux concernés.
+        if (levelInput.sort === "balance_level")
+          this.v += (Math.abs(((MIN_LEVEL + MAX_LEVEL) / 2) - (levelsSum[levelKey] / c.getStudents().length))) * (levelInput.priority ?? 1)
+
+        // Respect du regroupement des options, pour celles concernées.
+        // Les classes avec moins de 3/4 d'élèves ayant l'option sont pénalisées proportionnellement au nombre d'élèves concernés.
+        if (levelInput.sort === "group_together_balance" && levelsCount[levelKey] < almostFullAmount)
+          this.v += levelsCount[levelKey] * (input.levels[levelKey].priority ?? 1)
       }
     }
 
-    // Amitiés regroupées par classe.
-    for (const c of this.classes) {
-      for (const s of c.getStudents()) {
-        for (const f of s.friends) {
-          if (!c.hasStudent(f)) this.v -= FRIEND_MULTIPLIER
-        }
-      }
+    // Respect du regroupement des options, pour celles concernées.
+    // Minimisation du nombre de classes contenant chaque option à regrouper.
+    for (const [levelKey, classes] of Object.entries(classesOfLevels)) {
+      this.v += (classes.length * 100) * (input.levels[levelKey].priority ?? 1)
     }
 
     return this.v

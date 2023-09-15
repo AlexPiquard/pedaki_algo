@@ -1,4 +1,4 @@
-import {Gender, LanguageOption, SpecializationOption, Student} from "./genetic.ts";
+import {Student} from "./student.ts";
 
 export default class Class {
   private students: Student[]
@@ -28,40 +28,25 @@ export default class Class {
   }
 
   toString() {
-    const countGender: number[] = [];
-    const countLanguage: number[] = [];
-    const countSpecialization: number[] = [];
+    const countGender: {[gender: string]: number} = {};
+    const countLevel: {[level: string]: number} = {}
 
     for (const student of this.students) {
       countGender[student.gender] = countGender[student.gender] ? countGender[student.gender] + 1 : 1
 
-      for (const language of student.options.languages) {
-        countLanguage[language] = countLanguage[language] ? countLanguage[language] + 1 : 1
-      }
-
-      for (const specialization of student.options.specialization) {
-        countSpecialization[specialization] = countSpecialization[specialization] ? countSpecialization[specialization] + 1 : 1
+      for (const levelKey of Object.keys(student.levels)) {
+        countLevel[levelKey] = countLevel[levelKey] ? countLevel[levelKey] + 1 : 1
       }
     }
 
     let str = `Class{students: ${this.students.length}, `
 
-    for (const gender of Object.keys(Gender)) {
-      if (!(parseInt(gender) in Gender)) continue
-      if (!countGender[Gender[parseInt(gender)] as unknown as number]) continue;
-      str += `${Gender[parseInt(gender)]}: ${countGender[Gender[parseInt(gender)] as unknown as number]}, `
+    for (const gender of ["M", "F"]) {
+      str += `${gender}: ${countGender[gender]}, `
     }
 
-    for (const language of Object.keys(LanguageOption)) {
-      if (!(parseInt(language) in LanguageOption)) continue
-      if (!countLanguage[LanguageOption[parseInt(language)] as unknown as number]) continue;
-      str += `${LanguageOption[parseInt(language)]}: ${countLanguage[LanguageOption[parseInt(language)] as unknown as number]}, `
-    }
-
-    for (const specialization of Object.keys(SpecializationOption)) {
-      if (!(parseInt(specialization) in SpecializationOption)) continue
-      if (!countSpecialization[SpecializationOption[parseInt(specialization)] as unknown as number]) continue;
-      str += `${SpecializationOption[parseInt(specialization)]}: ${countSpecialization[SpecializationOption[parseInt(specialization)] as unknown as number]}, `
+    for (const [levelKey, count] of Object.entries(countLevel)) {
+      str += `${levelKey}: ${count}, `
     }
 
     return str.substring(0, str.length - 2) + "}"
