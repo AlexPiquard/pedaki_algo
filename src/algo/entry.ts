@@ -5,7 +5,7 @@ import {
   CLASS_WRONG_SIZE_MULTIPLIER, MAX_LEVEL,
   MAX_STUDENTS_TO_MOVE, MIN_LEVEL,
 } from "./genetic.ts";
-import {Student} from "./student.ts";
+import {getStudentValue, Student} from "./student.ts";
 import {Input} from "./input.ts";
 import {groupTogetherValue} from "./rules/group_together.ts";
 
@@ -39,41 +39,43 @@ export default class Entry {
   /**
    * Faire un changement aléatoire dans la configuration actuelle et retourner une nouvelle disposition.
    */
-  public randomChange(maxClasses: number, maxStudents: number): Entry {
+  public randomChange(input: Input): Entry {
     const entry = this.clone()
     const allStudents = entry.classes.map(c => c.getStudents()).flat()
     const moves = Math.floor(Math.random() * MAX_STUDENTS_TO_MOVE) + 1;
+    const worseStudents = allStudents.map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]]).sort((a, b) => b[1][0] - a[1][0]).slice(0, moves)
 
-    for (let i = 0; i < moves; ++i) {
-      this.randomChangeMove(entry, allStudents, maxClasses, maxStudents)
+    for (let [student, [, destinations], ] of worseStudents) {
+      this.randomChangeMove(student, destinations, entry, input)
     }
 
     return entry
   }
 
-  private randomChangeMove(entry: Entry, allStudents: Student[], maxClasses: number, maxStudents: number): Entry {
+  private randomChangeMove(student: Student, destinations: Class[], entry: Entry, input: Input): Entry {
     // Choisir un élève parmi toutes les classes.
-    const student = allStudents[Math.floor(Math.random() * (allStudents.length))]
     const studentClass = entry.searchStudent(student) as {class: Class, index: number}
 
     // Choisir une autre classe, différente de celle choisie précédemment.
-    let otherClass = entry.classes.filter((_c, i) => i !== studentClass?.index)[Math.floor(Math.random() * (entry.classes.length - (maxClasses === entry.classes.length ? 1 : 0)))]
+    let otherClass: Class
+    if (destinations.length) {
+      otherClass = destinations[Math.floor(Math.random() * destinations.length)]
+    }else
+      otherClass = entry.classes.filter((c, i) => i !== studentClass?.index && c.getStudents().length < input.counts.max_students)[Math.floor(Math.random() * (entry.classes.length - (input.counts.max_classes === entry.classes.length ? 1 : 0)))]
     if (!otherClass) {
       otherClass = new Class([])
       entry.classes.push(otherClass)
     }
 
-    // Si on ne peut pas ajouter d'élève dans la classe choisie, on recommence.
-    if (otherClass.getStudents().length >= maxStudents)
-      return this.randomChangeMove(entry, allStudents, maxClasses, maxStudents)
-
     // Déplacer l'élève dans l'autre classe.
     studentClass?.class?.removeStudent(student);
     otherClass.addStudent(student)
 
-    if (otherClass.getStudents().length && Math.random() > CHANCE_TO_MOVE_ALONE) {
+    // On l'échange selon un pourcentage de chance, ou si la classe de destination est pleine.
+    if (otherClass.getStudents().length > 1 && (otherClass.getStudents().length >= input.counts.max_students || Math.random() > CHANCE_TO_MOVE_ALONE)) {
       // Echanger l'élève avec un autre de l'autre classe.
-      const otherStudent = otherClass.getStudents()[Math.floor(Math.random() * otherClass.getStudents().length)]
+      // TODO il faut échanger avec l'élève le moins bien placé dans cette classe.
+      const otherStudent = otherClass.getStudents().map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]]).sort((a, b) => b[1][0] - a[1][0])[0][0]
       studentClass?.class?.addStudent(otherStudent)
       otherClass.removeStudent(otherStudent)
     } else if (studentClass?.class.getStudents().length === 0) {
@@ -93,7 +95,7 @@ export default class Entry {
 
     // Respect du nombre de classes.
     if (this.classes.length < (input.counts.min_classes ?? 1) || this.classes.length > input.counts.max_classes)
-      this.v += CLASS_WRONG_AMOUNT_MULTIPLIER // TODO rule minimize maximize
+      this.v += CLASS_WRONG_AMOUNT_MULTIPLIER // TODO rule minimize maximize}
 
     const classesOfLevels: {[level: string]: number[]} = {}
 

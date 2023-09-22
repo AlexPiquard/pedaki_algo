@@ -1,6 +1,6 @@
 {
   "counts": {
-    "min_classes": 30,
+    "min_classes": 10,
     "max_classes": 35,
     "min_students": 30,
     "max_students": 35,
@@ -22,17 +22,16 @@
     }
   },
   "levels": {
-    "maths": {
+    "francais": {
       "priority": 0,
       "rules": {
-        "balance_level": 1
+        "balance_level": 0
       }
     },
     "allemand": {
-      "priority": 2,
+      "priority": 0,
       "rules": {
-        "group_together": 2,
-        "divide": 1
+        "group_together": 0
       }
     }
   }
