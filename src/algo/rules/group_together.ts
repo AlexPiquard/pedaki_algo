@@ -4,8 +4,8 @@ import Entry from "../entry.ts";
 /**
  * Estimer le nombre de classes nécessaires au regroupement d'une option dans une certaine configuration existante.
  */
-export const groupTogetherBalanceValue = (entry: Entry, input: Input, level: string) => {
-  // Compter d'élèves qui ont l'option // TODO pas recompter à chaque fois
+export const groupTogetherValue = (entry: Entry, input: Input, level: string) => {
+  // Compter le nombre d'élèves qui ont l'option // TODO pas recompter à chaque fois
   let amount = 0;
   const levelsPerClass: { [c: string]: number } = {}
   for (let [i, c] of Object.entries(entry.classes)) {

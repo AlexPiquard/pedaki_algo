@@ -7,7 +7,7 @@ import {
 } from "./genetic.ts";
 import {Student} from "./student.ts";
 import {Input} from "./input.ts";
-import {groupTogetherBalanceValue} from "./sort/group_together_balance.ts";
+import {groupTogetherValue} from "./rules/group_together.ts";
 
 export default class Entry {
   public classes: Class[]
@@ -93,7 +93,7 @@ export default class Entry {
 
     // Respect du nombre de classes.
     if (this.classes.length < (input.counts.min_classes ?? 1) || this.classes.length > input.counts.max_classes)
-      this.v += CLASS_WRONG_AMOUNT_MULTIPLIER
+      this.v += CLASS_WRONG_AMOUNT_MULTIPLIER // TODO rule minimize maximize
 
     const classesOfLevels: {[level: string]: number[]} = {}
 
@@ -115,7 +115,7 @@ export default class Entry {
         for (const levelKey of Object.keys(s.levels)) {
           levelsCount[levelKey] = levelsCount[levelKey] ? levelsCount[levelKey] + 1 : 1
           levelsSum[levelKey] = levelsSum[levelKey] ? levelsSum[levelKey] + s.levels[levelKey] : s.levels[levelKey]
-          if (!classesOfLevels[levelKey]?.includes?.(classkey) && input.levels[levelKey]?.sort === "group_together_balance") {
+          if (!classesOfLevels[levelKey]?.includes?.(classkey) && input.levels[levelKey] && "group_together" in input.levels[levelKey]?.rules) {
             if (!classesOfLevels[levelKey]) classesOfLevels[levelKey] = [classkey]
             else classesOfLevels[levelKey].push(classkey)
           }
@@ -146,24 +146,23 @@ export default class Entry {
       for (const [levelKey, levelInput] of Object.entries(input.levels)) {
         if (!(levelKey in levelsCount)) continue
 
-        // Respect du dénombrement des niveaux pour chaque classe.
-        if ((levelInput.count?.min !== undefined && levelsCount[levelKey] < levelInput.count.min) || (levelInput.count?.max !== undefined && levelsCount[levelKey] > levelInput.count.max))
-          this.v += (levelInput.priority ?? 1) * (levelInput.count.priority ?? 1)
-
         // Respect des relations entre niveaux.
         for (const key of levelInput?.relations?.forbidden?.list ?? []) {
           if (key in levelsCount) this.v += (levelInput.priority ?? 1) * (levelInput.relations.forbidden?.priority ?? 1)
         }
 
         // Respect de l'équilibrage des niveaux pour ceux concernés.
-        if (levelInput.sort === "balance_level")
-          this.v += (Math.abs(((MIN_LEVEL + MAX_LEVEL) / 2) - (levelsSum[levelKey] / c.getStudents().length))) * (levelInput.priority ?? 1)
+        if ("balance_level" in levelInput.rules)
+          this.v += (Math.abs(((MIN_LEVEL + MAX_LEVEL) / 2) - (levelsSum[levelKey] / c.getStudents().length))) * (levelInput.priority ?? 1) * (levelInput.rules["balance_level"] ?? 1)
       }
     }
 
+    // TODO rule divide : le meme nombre dans chaque classe
+    //   -> si en même temps que la règle group_together, ça rassemble sur le minimum de classe mais égalise entre elles
+
     // Respect du regroupement des options, pour celles concernées.
     for (const [levelKey] of Object.entries(classesOfLevels)) {
-      this.v += groupTogetherBalanceValue(this, input, levelKey)
+      this.v += groupTogetherValue(this, input, levelKey)
     }
 
     return this.v

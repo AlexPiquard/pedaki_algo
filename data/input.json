@@ -3,7 +3,8 @@
     "min_classes": 30,
     "max_classes": 35,
     "min_students": 30,
-    "max_students": 35
+    "max_students": 35,
+    "rule": "minimize"
   },
   "relations": {
     "positive_priority": 0,
@@ -23,14 +24,16 @@
   "levels": {
     "maths": {
       "priority": 0,
-      "sort": "balance_level",
-      "count": {
-        "min": 3
+      "rules": {
+        "balance_level": 1
       }
     },
     "allemand": {
       "priority": 2,
-      "sort": "group_together_balance"
+      "rules": {
+        "group_together": 2,
+        "divide": 1
+      }
     }
   }
 }
