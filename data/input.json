@@ -2,7 +2,7 @@
   "counts": {
     "min_classes": 10,
     "max_classes": 35,
-    "min_students": 30,
+    "min_students": 10,
     "max_students": 35,
     "rule": "minimize"
   },
@@ -12,8 +12,6 @@
     "required_priority": 0,
     "forbidden_priority": 0
   },
-  "birthdate": {
-  },
   "gender": {
     "priority": 0,
     "parity": {
@@ -22,16 +20,10 @@
     }
   },
   "levels": {
-    "francais": {
-      "priority": 0,
-      "rules": {
-        "balance_level": 0
-      }
-    },
     "allemand": {
-      "priority": 0,
+      "priority": 1,
       "rules": {
-        "group_together": 0
+        "group_together": 1
       }
     }
   }

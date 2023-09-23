@@ -1,35 +1,28 @@
-import {Input} from "../input.ts";
-import Entry from "../entry.ts";
+import {Input} from "../input.ts"
+import Entry from "../entry.ts"
 
 /**
  * Estimer le nombre de classes nécessaires au regroupement d'une option dans une certaine configuration existante.
  */
 export const groupTogetherValue = (entry: Entry, input: Input, level: string) => {
+	let sum = 0
+	for (const [, levelValue] of groupTogetherGetExcludedClasses(entry, input, level)) {
+		sum += levelValue ?? 0
+	}
 
-  let sum = 0
-  for (const [, levelValue] of groupTogetherGetExcludedClasses(entry, input, level)) {
-    sum += levelValue ?? 0
-  }
-
-  return sum
+	return sum
 }
 
+/**
+ * Retourne la liste des classes qui ne doivent pas contenir une certaine option.
+ * Associe à chaque indice de classe, le nombre d'élèves qui ont l'option (et qui ne devraient donc pas l'avoir).
+ */
 export const groupTogetherGetExcludedClasses = (entry: Entry, input: Input, level: string) => {
-  // Compter le nombre d'élèves qui ont l'option // TODO pas recompter à chaque fois
-  let amount = 0;
-  const levelsPerClass: { [c: string]: number } = {}
-  for (let [i, c] of Object.entries(entry.classes)) {
-    for (let s of c.getStudents()) {
-      if (level in s.levels) {
-        amount++
-        levelsPerClass[i] = i in levelsPerClass ? levelsPerClass[i] + 1 : 1
-      }
-    }
-  }
+	// Estimer le nombre de classes minimum si on regroupe correctement.
+	const classesForLevel = Math.ceil(entry.genetic.getLevelCount(level) / input.counts.max_students)
 
-  // Estimer le nombre de classes minimum si on regroupe correctement.
-  const classesForLevel = Math.ceil(amount / input.counts.max_students)
-
-  // Exclure les classes ayant le plus l'option.
-  return Object.entries(levelsPerClass).sort((a, b) => a[1] - b[1]).slice(0, -classesForLevel)
+	// Exclure les classes ayant le plus l'option.
+	return Object.entries(entry.getLevelCountByClass(level))
+		.sort((a, b) => a[1] - b[1])
+		.slice(0, -classesForLevel)
 }
