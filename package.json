@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "ts-node --esm ./src/algo/genetic.ts",
+    "test": "npx tsx src/algo/genetic.ts",
     "format": "prettier --write src"
   },
   "devDependencies": {
