@@ -8,7 +8,7 @@ export type Module = {studentsFile: string, inputFile: string, keysMask: string[
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-describe('get genetic classes from input', function () {
+describe('get classes from input', function () {
     fixtures(__dirname, "genetic", async ({module}: { module: Module }) => {
         let {studentsFile, inputFile, keysMask, output} = module
         const students = (await import(studentsFile, {assert: {type: "json"}})).default
