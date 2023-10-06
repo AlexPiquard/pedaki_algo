@@ -1,8 +1,6 @@
 import Entry from "./entry.ts"
 import {Input} from "./input.ts"
 import {Student} from "./student.ts"
-import students from "../../data/pedaki-user-json-500.json" assert {type: "json"}
-import input from "../../data/input.json" assert {type: "json"}
 
 export const MAX_STUDENTS_TO_MOVE = 50
 export const CLASS_WRONG_SIZE_MULTIPLIER = 100
@@ -66,7 +64,3 @@ export default class Genetic {
 		return entries[0]
 	}
 }
-
-const algo = new Genetic()
-const entry = algo.solve(students as unknown as Student[], input as unknown as Input)
-console.log(entry.toString("allemand"))

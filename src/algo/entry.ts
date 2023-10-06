@@ -144,12 +144,12 @@ export default class Entry {
 		entry.moveStudent(student, studentClass, {class: otherClass, index: entry.classes.indexOf(otherClass)})
 
 		// On l'échange avec un élève de sa nouvelle classe si elle est pleine.
-		if (otherClass.getStudents().length >= input.counts.max_students) {
+		if (otherClass.getStudents().length > input.counts.max_students) {
 			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé.
-			const otherStudent = otherClass
-				.getStudents()
-				.map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]])
-				.sort((a, b) => b[1][0] - a[1][0])[0][0] // TODO ne pas tout trier juste pour récupérer le premier
+			const otherStudent = otherClass.getStudents().map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]]).reduce((acc, cur) => {
+				if (cur[1][0] > acc[1][0]) return cur
+				return acc
+			})[0]
 
 			// Déplacer cet élève dans la classe initiale du premier élève (échanger).
 			entry.moveStudent(otherStudent, {class: otherClass, index: entry.classes.indexOf(otherClass)}, studentClass)
@@ -250,6 +250,10 @@ export default class Entry {
 		}
 
 		return this.value
+	}
+
+	toCount(...keysMask: string[]) {
+		return this.classes.map(c => c.toCount(...keysMask))
 	}
 
 	toString(...keysMask: string[]) {

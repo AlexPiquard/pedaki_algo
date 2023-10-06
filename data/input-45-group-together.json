@@ -1,0 +1,42 @@
+{
+  "counts": {
+    "min_classes": 3,
+    "max_classes": 3,
+    "min_students": 10,
+    "max_students": 15,
+    "rule": "minimize"
+  },
+  "relations": {
+    "positive_priority": 0,
+    "negative_priority": 0,
+    "required_priority": 0,
+    "forbidden_priority": 0
+  },
+  "gender": {
+    "priority": 0,
+    "parity": {
+      "M": 50,
+      "F": 50
+    }
+  },
+  "levels": {
+    "allemand": {
+      "priority": 1,
+      "rules": {
+        "group_together": 1
+      }
+    },
+    "espagnol": {
+      "priority": 1,
+      "rules": {
+        "group_together": 1
+      }
+    },
+    "anglais": {
+      "priority": 1,
+      "rules": {
+        "group_together": 1
+      }
+    }
+  }
+}
