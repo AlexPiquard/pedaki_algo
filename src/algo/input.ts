@@ -1,5 +1,16 @@
-export type LevelRuleType = "balance_level" | "divide" | "group_together"
-export type CountRule = "minimize" | "maximize"
+export type LevelRuleType =
+	// Équilibrer le niveau d'une certaine option dans chaque classe qui possède l'option.
+	"balance_level"
+	// Répartir équitablement le nombre d'élèves ayant une option dans chaque classe possédant cette option.
+	| "balance_count"
+	// Regrouper une certaine option dans un minimum de classes.
+	| "group_together"
+
+export type CountRule =
+	// Minimiser le nombre de classes.
+	"minimize"
+	// Maximiser le nombre de classes.
+	| "maximize"
 
 export interface Input {
 	counts: {

@@ -240,7 +240,7 @@ export default class Entry {
 			}
 		}
 
-		// TODO rule divide : le meme nombre dans chaque classe
+		// TODO rule balance_count : le meme nombre dans chaque classe
 		//   -> si en même temps que la règle group_together, ça rassemble sur le minimum de classe mais égalise entre elles
 
 		// Respect du regroupement des options, pour celles concernées.
