@@ -1,7 +1,9 @@
 export type LevelRuleType =
 	// Équilibrer le niveau d'une certaine option dans chaque classe qui possède l'option.
+	// C'est une règle complémentaire qui ne peut pas exister seule.
 	"balance_level"
 	// Répartir équitablement le nombre d'élèves ayant une option dans chaque classe possédant cette option.
+	// C'est une règle complémentaire qui ne peut pas exister seule.
 	| "balance_count"
 	// Regrouper une certaine option dans un minimum de classes.
 	| "group_together"

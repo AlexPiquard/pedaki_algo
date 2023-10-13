@@ -9,6 +9,7 @@ import Genetic, {
 import {getStudentValue, Student} from "./student.ts"
 import {Input} from "./input.ts"
 import {groupTogetherValue} from "./rules/group_together.ts"
+import {balanceCountValue} from "./rules/balance_count.ts"
 
 export default class Entry {
 	public genetic: Genetic
@@ -17,6 +18,9 @@ export default class Entry {
 
 	// Nombre d'élèves ayant chaque option dans chaque classe.
 	private levelsPerClass: {[levelKey: string]: {[classKey: string]: number}} = {}
+
+	// Somme des niveaux pour chaque option dans chaque classe.
+	private levelsSumsPerClass: {[levelKey: string]: {[classKey: string]: number}} = {}
 
 	constructor(genetic: Genetic, classes: Class[]) {
 		this.genetic = genetic
@@ -30,19 +34,20 @@ export default class Entry {
 	private calculate() {
 		for (const [i, c] of Object.entries(this.classes)) {
 			for (const s of c.getStudents()) {
-				for (const levelKey of Object.keys(s.levels)) {
+				for (const [levelKey, level] of Object.entries(s.levels)) {
 					if (!(levelKey in this.levelsPerClass)) {
 						this.levelsPerClass[levelKey] = {}
-						this.levelsPerClass[levelKey][i] = 1
-						continue
+						this.levelsSumsPerClass[levelKey] = {}
 					}
 
 					if (!(i in this.levelsPerClass[levelKey])) {
 						this.levelsPerClass[levelKey][i] = 1
+						this.levelsSumsPerClass[levelKey][i] = level
 						continue
 					}
 
 					this.levelsPerClass[levelKey][i]++
+					this.levelsSumsPerClass[levelKey][i] += level
 				}
 			}
 		}
@@ -55,12 +60,19 @@ export default class Entry {
 		for (const [levelKey, value] of Object.entries(this.levelsPerClass)) {
 			entry.levelsPerClass[levelKey] = Object.assign({}, value)
 		}
+		for (const [levelKey, value] of Object.entries(this.levelsSumsPerClass)) {
+			entry.levelsSumsPerClass[levelKey] = Object.assign({}, value)
+		}
 
 		return entry
 	}
 
 	public getLevelCountByClass(levelKey: string) {
 		return this.levelsPerClass[levelKey]
+	}
+
+	public getLevelSumByClass(levelKey: string) {
+		return this.levelsSumsPerClass[levelKey]
 	}
 
 	public searchStudent(student: Student): ClassWithIndex | null {
@@ -81,11 +93,17 @@ export default class Entry {
 		from.class.removeStudent(student)
 		to.class.addStudent(student)
 
-		for (const levelKey of Object.keys(student.levels)) {
+		for (const [levelKey, level] of Object.entries(student.levels)) {
 			this.levelsPerClass[levelKey][from.index]--
+			this.levelsSumsPerClass[levelKey][from.index] -= level
 
-			if (!(to.index in this.levelsPerClass[levelKey])) this.levelsPerClass[levelKey][to.index] = 1
-			else this.levelsPerClass[levelKey][to.index]++
+			if (!(to.index in this.levelsPerClass[levelKey])) {
+				this.levelsPerClass[levelKey][to.index] = 1
+				this.levelsSumsPerClass[levelKey][to.index] = level
+			} else {
+				this.levelsPerClass[levelKey][to.index]++
+				this.levelsSumsPerClass[levelKey][to.index] += level
+			}
 		}
 	}
 
@@ -113,7 +131,7 @@ export default class Entry {
 		// Établir la liste des élèves les moins bien placés et n'en garder qu'un certain nombre.
 		// On obtient en même temps la liste des destinations idéales pour chaque élève.
 		const worseStudents = allStudents
-			.map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]])
+			.map(s => [s, getStudentValue(entry, input, this.genetic, s)] as [Student, [number, Class[]]])
 			.filter(([, [value]]) => value > 0)
 			.sort((a, b) => b[1][0] - a[1][0])
 			.slice(0, moves)
@@ -133,6 +151,8 @@ export default class Entry {
 		destinations = destinations.filter(c => entry.classes.indexOf(c) >= 0)
 
 		// Choisir une autre classe, différente de celle choisie précédemment, en respectant l'éventuelle liste des destinations idéales.
+		if (!destinations.length) console.log("empty destinations")
+		else console.log("yes")
 		let otherClass = !!destinations.length && destinations[Math.floor(Math.random() * destinations.length)]
 		if (!otherClass) {
 			// Aucune classe idéale n'existe pour cet élève, donc on en crée une nouvelle.
@@ -146,10 +166,13 @@ export default class Entry {
 		// On l'échange avec un élève de sa nouvelle classe si elle est pleine.
 		if (otherClass.getStudents().length > input.counts.max_students) {
 			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé.
-			const otherStudent = otherClass.getStudents().map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]]).reduce((acc, cur) => {
-				if (cur[1][0] > acc[1][0]) return cur
-				return acc
-			})[0]
+			const otherStudent = otherClass
+				.getStudents()
+				.map(s => [s, getStudentValue(entry, input, this.genetic, s)] as [Student, [number, Class[]]])
+				.reduce((acc, cur) => {
+					if (cur[1][0] > acc[1][0]) return cur
+					return acc
+				})[0]
 
 			// Déplacer cet élève dans la classe initiale du premier élève (échanger).
 			entry.moveStudent(otherStudent, {class: otherClass, index: entry.classes.indexOf(otherClass)}, studentClass)
@@ -243,10 +266,23 @@ export default class Entry {
 		// TODO rule balance_count : le meme nombre dans chaque classe
 		//   -> si en même temps que la règle group_together, ça rassemble sur le minimum de classe mais égalise entre elles
 
-		// Respect du regroupement des options, pour celles concernées.
 		for (const levelKey of this.genetic.getLevels) {
-			if (!(levelKey in input.levels) || !("group_together" in input.levels[levelKey].rules)) continue
-			this.value += groupTogetherValue(this, input, levelKey)
+			if (!(levelKey in input.levels)) continue
+
+			// Respect du regroupement des options, pour celles concernées.
+			if ("group_together" in input.levels[levelKey].rules)
+				this.value +=
+					groupTogetherValue(this, input, levelKey) *
+					(input.levels[levelKey].priority ?? 1) *
+					(input.levels[levelKey].rules["group_together"] ?? 1)
+
+			// Respect de l'équilibrage des options sur les classes qui possèdent l'option.
+			if ("balance_count" in input.levels[levelKey].rules) {
+				this.value +=
+					balanceCountValue(this, this.genetic, levelKey) *
+					(input.levels[levelKey].priority ?? 1) *
+					(input.levels[levelKey].rules["balance_count"] ?? 1)
+			}
 		}
 
 		return this.value

@@ -2,7 +2,8 @@ import {Input} from "../input.ts"
 import Entry from "../entry.ts"
 
 /**
- * Estimer le nombre de classes nécessaires au regroupement d'une option dans une certaine configuration existante.
+ * Associer une valeur relative à la règle de regroupement d'une option en fonction d'une certaine disposition.
+ * Prend en compte une liste de classes qui doivent contenir l'option, et incrémente la valeur pour chaque élève mal placé.
  */
 export const groupTogetherValue = (entry: Entry, input: Input, level: string) => {
 	let sum = 0
