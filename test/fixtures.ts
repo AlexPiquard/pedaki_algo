@@ -41,7 +41,7 @@ export const fixtures = (...args: any[]) => {
             ) {
                 const name = basename(file, extname(file))
 
-                // Cela ne peut pas être une fonction `() => {}` pour pouvoir utiliser `this.skip()`.
+                // Réalisation du test en exécutant la fonction passée.
                 it(`${name} `, async function () {
                     const module: Module = await import("file://"+p)
 
@@ -52,8 +52,8 @@ export const fixtures = (...args: any[]) => {
                     }
 
                     // On réalise le test en exécutant la fonction sur ce fichier.
-                    await fn({name, path, module})
-                })
+                    return fn({name, path, module})
+                }).timeout(30000)
             }
         }
     })

@@ -1,6 +1,9 @@
 import Entry from "./entry.ts"
 import {Input} from "./input.ts"
 import {Student} from "./student.ts"
+import {GroupTogether} from "./rules/group_together.ts"
+import {BalanceCount} from "./rules/balance_count.ts"
+import {Rule} from "./rules/Rule.ts"
 
 export const MAX_STUDENTS_TO_MOVE = 50
 export const CLASS_WRONG_SIZE_MULTIPLIER = 100
@@ -11,6 +14,11 @@ export const PRECISION_RANGE = 1
 // const GENERATIONS = 1000
 const GENERATED_CHILDREN_PER_GENERATION = 50
 const GENERATION_SIZE = 50
+
+export const RuleStudentOrder: [Rule, number][] = [
+	[GroupTogether, 1],
+	[BalanceCount, 2],
+]
 
 export default class Genetic {
 	// Liste complète des options existantes.
@@ -48,8 +56,6 @@ export default class Genetic {
 		const entries = [Entry.from(this, students, input.counts.max_students)]
 		let bestValue = entries[0].getValue(input)
 
-		let j = 0
-		console.log(entries[0].toString("allemand"), entries[0].getValue(input))
 		while (bestValue > 0) {
 			// On fait un changement aléatoire dans chaque configuration.
 			for (let i = 0; i < GENERATED_CHILDREN_PER_GENERATION; ++i) {
@@ -62,10 +68,6 @@ export default class Genetic {
 				.splice(GENERATION_SIZE, GENERATED_CHILDREN_PER_GENERATION)
 
 			bestValue = entries[0].getValue(input)
-
-			++j
-			if (j % 50 === 0) console.log(entries[0].toString("allemand"), bestValue)
-			if (j > 200) break;
 		}
 		console.log("duration: ", ((Date.now() - startTime) / 1000).toString() + "s")
 		return entries[0]

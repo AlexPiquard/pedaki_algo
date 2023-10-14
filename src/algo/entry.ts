@@ -8,8 +8,8 @@ import Genetic, {
 } from "./genetic.ts"
 import {getStudentValue, Student} from "./student.ts"
 import {Input} from "./input.ts"
-import {groupTogetherValue} from "./rules/group_together.ts"
-import {balanceCountValue} from "./rules/balance_count.ts"
+import {GroupTogether} from "./rules/group_together.ts"
+import {BalanceCount} from "./rules/balance_count.ts"
 
 export default class Entry {
 	public genetic: Genetic
@@ -85,6 +85,19 @@ export default class Entry {
 		return null
 	}
 
+	public deleteClass(classIndex: number) {
+		this.classes.splice(classIndex, 1)
+
+		// Les identifiants de classe ont changé.
+		for (const [levelKey, oldObject] of Object.entries(this.levelsPerClass)) {
+			const newObject: {[classKey: string]: number} = {}
+			for (let [classKey, value] of Object.entries(oldObject)) {
+				newObject[parseInt(classKey) > classIndex ? parseInt(classKey) - 1 : parseInt(classKey)] = value
+			}
+			this.levelsPerClass[levelKey] = newObject
+		}
+	}
+
 	/**
 	 * Déplacer un élève dans une autre classe.
 	 * Permet d'actualiser les différentes données de la configuration actuelle (sans tout recalculer).
@@ -96,6 +109,10 @@ export default class Entry {
 		for (const [levelKey, level] of Object.entries(student.levels)) {
 			this.levelsPerClass[levelKey][from.index]--
 			this.levelsSumsPerClass[levelKey][from.index] -= level
+
+			if (this.levelsPerClass[levelKey][from.index] === 0) delete this.levelsPerClass[levelKey][from.index]
+			if (this.levelsSumsPerClass[levelKey][from.index] === 0)
+				delete this.levelsSumsPerClass[levelKey][from.index]
 
 			if (!(to.index in this.levelsPerClass[levelKey])) {
 				this.levelsPerClass[levelKey][to.index] = 1
@@ -131,7 +148,7 @@ export default class Entry {
 		// Établir la liste des élèves les moins bien placés et n'en garder qu'un certain nombre.
 		// On obtient en même temps la liste des destinations idéales pour chaque élève.
 		const worseStudents = allStudents
-			.map(s => [s, getStudentValue(entry, input, this.genetic, s)] as [Student, [number, Class[]]])
+			.map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]])
 			.filter(([, [value]]) => value > 0)
 			.sort((a, b) => b[1][0] - a[1][0])
 			.slice(0, moves)
@@ -151,8 +168,6 @@ export default class Entry {
 		destinations = destinations.filter(c => entry.classes.indexOf(c) >= 0)
 
 		// Choisir une autre classe, différente de celle choisie précédemment, en respectant l'éventuelle liste des destinations idéales.
-		if (!destinations.length) console.log("empty destinations")
-		else console.log("yes")
 		let otherClass = !!destinations.length && destinations[Math.floor(Math.random() * destinations.length)]
 		if (!otherClass) {
 			// Aucune classe idéale n'existe pour cet élève, donc on en crée une nouvelle.
@@ -168,7 +183,7 @@ export default class Entry {
 			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé.
 			const otherStudent = otherClass
 				.getStudents()
-				.map(s => [s, getStudentValue(entry, input, this.genetic, s)] as [Student, [number, Class[]]])
+				.map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]])
 				.reduce((acc, cur) => {
 					if (cur[1][0] > acc[1][0]) return cur
 					return acc
@@ -178,7 +193,7 @@ export default class Entry {
 			entry.moveStudent(otherStudent, {class: otherClass, index: entry.classes.indexOf(otherClass)}, studentClass)
 		} else if (studentClass?.class.getStudents().length === 0) {
 			// Supprimer la classe s'il n'y a plus d'élèves dedans.
-			entry.classes.splice(studentClass?.index, 1)
+			entry.deleteClass(studentClass.index)
 		}
 
 		return entry
@@ -272,14 +287,14 @@ export default class Entry {
 			// Respect du regroupement des options, pour celles concernées.
 			if ("group_together" in input.levels[levelKey].rules)
 				this.value +=
-					groupTogetherValue(this, input, levelKey) *
+					GroupTogether.getEntryValue(this, input, levelKey) *
 					(input.levels[levelKey].priority ?? 1) *
 					(input.levels[levelKey].rules["group_together"] ?? 1)
 
 			// Respect de l'équilibrage des options sur les classes qui possèdent l'option.
 			if ("balance_count" in input.levels[levelKey].rules) {
 				this.value +=
-					balanceCountValue(this, this.genetic, levelKey) *
+					BalanceCount.getEntryValue(this, input, levelKey) *
 					(input.levels[levelKey].priority ?? 1) *
 					(input.levels[levelKey].rules["balance_count"] ?? 1)
 			}

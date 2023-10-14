@@ -1,9 +1,9 @@
 {
   "counts": {
-    "min_classes": 10,
-    "max_classes": 35,
-    "min_students": 10,
-    "max_students": 35,
+    "min_classes": 5,
+    "max_classes": 5,
+    "min_students": 100,
+    "max_students": 100,
     "rule": "minimize"
   },
   "relations": {
