@@ -85,16 +85,29 @@ export default class Entry {
 		return null
 	}
 
+	/**
+	 * Suppression d'une classe dans cette configuration.
+	 * Entraine la modification des données d'analyse puisque les identifiants des classes vont changer.
+	 */
 	public deleteClass(classIndex: number) {
 		this.classes.splice(classIndex, 1)
 
 		// Les identifiants de classe ont changé.
+		// TODO
 		for (const [levelKey, oldObject] of Object.entries(this.levelsPerClass)) {
 			const newObject: {[classKey: string]: number} = {}
 			for (let [classKey, value] of Object.entries(oldObject)) {
 				newObject[parseInt(classKey) > classIndex ? parseInt(classKey) - 1 : parseInt(classKey)] = value
 			}
 			this.levelsPerClass[levelKey] = newObject
+		}
+
+		for (const [levelKey, oldObject] of Object.entries(this.levelsSumsPerClass)) {
+			const newObject: {[classKey: string]: number} = {}
+			for (let [classKey, value] of Object.entries(oldObject)) {
+				newObject[parseInt(classKey) > classIndex ? parseInt(classKey) - 1 : parseInt(classKey)] = value
+			}
+			this.levelsSumsPerClass[levelKey] = newObject
 		}
 	}
 
