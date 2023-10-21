@@ -1,7 +1,7 @@
 import Entry from "./entry.ts"
 import {Input} from "./input.ts"
 import Class from "./class.ts"
-import {RuleStudentOrder} from "./genetic.ts"
+import {RuleOrder} from "./genetic.ts"
 
 export interface Student {
 	id: string
@@ -28,11 +28,14 @@ export const getStudentValue = (entry: Entry, input: Input, student: Student): [
 	let currentPriority = 0
 
 	const studentClassIndex = entry.searchStudent(student)?.index!
-	let bestClasses = entry.classes.filter((_c, i) => i !== studentClassIndex)
+	const defaultClassList = entry.classes.filter((_c, i) => i !== studentClassIndex)
+	let bestClasses = defaultClassList
 
-	for (let [rule, priority] of RuleStudentOrder) {
+	for (let {rule, priority} of Object.values(RuleOrder)) {
 		// On retourne tout de suite la valeur sans prendre en compte les règles suivante si la valeur est supérieure à 0 et que la priorité de la prochaine règle est inférieure.
 		if (value > 0 && currentPriority != priority) return [value, bestClasses]
+		// Si la priorité a changé, on réinitialise la liste des classes.
+		if (currentPriority != priority) bestClasses = defaultClassList
 
 		const studentValue = rule.getStudentValue(entry, input, student)
 		value += studentValue[0]

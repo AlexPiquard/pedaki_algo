@@ -26,8 +26,8 @@ describe("get classes from input", function () {
 			const input = inputFile.default
 
 			const algo = new Genetic()
-			const entry = algo.solve(students, input)
-			console.log("value :", entry.getValue(input))
+			const {entry, duration} = algo.solve(students, input)
+			console.log(`value: ${entry.getValue(input)}, duration: ${duration}`)
 			console.log(entry.toString(...keysMask))
 
 			const resultCount = entry.toCount(...keysMask).sort()

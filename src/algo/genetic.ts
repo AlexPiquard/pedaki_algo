@@ -1,5 +1,5 @@
 import Entry from "./entry.ts"
-import {Input} from "./input.ts"
+import {Input, LevelRuleType} from "./input.ts"
 import {Student} from "./student.ts"
 import {GroupTogether} from "./rules/group_together.ts"
 import {BalanceCount} from "./rules/balance_count.ts"
@@ -15,16 +15,20 @@ export const PRECISION_RANGE = 1
 const GENERATED_CHILDREN_PER_GENERATION = 50
 const GENERATION_SIZE = 50
 
-export const RuleStudentOrder: [Rule, number][] = [
-	[GroupTogether, 1],
-	[BalanceCount, 2],
-]
+export const RuleOrder: {[ruleKey: string]: {rule: Rule; priority: number}} = {
+	group_together: {rule: GroupTogether, priority: 2},
+	balance_count: {rule: BalanceCount, priority: 1},
+}
+
+export type Result = {entry: Entry; duration: number}
 
 export default class Genetic {
 	// Liste complète des options existantes.
 	private levels: string[] = []
 	// Nombre d'élèves qui ont chaque option.
 	private levelsCount: {[levelKey: string]: number} = {}
+	// Liste des options qui utilisent chaque règle.
+	private ruleLevels: {[ruleKey: string]: string[]} = {}
 
 	public get getLevels() {
 		return this.levels
@@ -34,7 +38,11 @@ export default class Genetic {
 		return levelKey in this.levelsCount ? this.levelsCount[levelKey] : 0
 	}
 
-	private calculate(students: Student[]) {
+	public getLevelsOfRule(ruleKey: LevelRuleType): string[] {
+		return this.ruleLevels[ruleKey]
+	}
+
+	private calculate(input: Input, students: Student[]) {
 		for (const s of students) {
 			for (const levelKey of Object.keys(s.levels)) {
 				if (!this.levels.includes(levelKey)) {
@@ -46,12 +54,19 @@ export default class Genetic {
 				this.levelsCount[levelKey]++
 			}
 		}
+
+		for (const [levelKey, levelInput] of Object.entries(input.levels)) {
+			for (const [ruleKey] of Object.entries(levelInput.rules)) {
+				if (!(ruleKey in this.ruleLevels)) this.ruleLevels[ruleKey] = []
+				this.ruleLevels[ruleKey].push(levelKey)
+			}
+		}
 	}
 
-	public solve(students: Student[], input: Input): Entry {
+	public solve(students: Student[], input: Input): Result {
 		const startTime = Date.now()
 
-		this.calculate(students)
+		this.calculate(input, students)
 
 		const entries = [Entry.from(this, students, input.counts.max_students)]
 		let bestValue = entries[0].getValue(input)
@@ -69,7 +84,7 @@ export default class Genetic {
 
 			bestValue = entries[0].getValue(input)
 		}
-		console.log("duration: ", ((Date.now() - startTime) / 1000).toString() + "s")
-		return entries[0]
+
+		return {entry: entries[0], duration: (Date.now() - startTime) / 1000}
 	}
 }

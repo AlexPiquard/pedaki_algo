@@ -5,6 +5,7 @@ import Genetic, {
 	MAX_LEVEL,
 	MAX_STUDENTS_TO_MOVE,
 	MIN_LEVEL,
+	RuleOrder,
 } from "./genetic.ts"
 import {getStudentValue, Student} from "./student.ts"
 import {Input} from "./input.ts"
@@ -93,22 +94,18 @@ export default class Entry {
 		this.classes.splice(classIndex, 1)
 
 		// Les identifiants de classe ont changé.
-		// TODO
-		for (const [levelKey, oldObject] of Object.entries(this.levelsPerClass)) {
-			const newObject: {[classKey: string]: number} = {}
-			for (let [classKey, value] of Object.entries(oldObject)) {
-				newObject[parseInt(classKey) > classIndex ? parseInt(classKey) - 1 : parseInt(classKey)] = value
+		const moveClassIndexes = (object: {[p: string]: {[p: string]: number}}) => {
+			for (const [levelKey, oldObject] of Object.entries(object)) {
+				const newObject: {[classKey: string]: number} = {}
+				for (let [classKey, value] of Object.entries(oldObject)) {
+					newObject[parseInt(classKey) > classIndex ? parseInt(classKey) - 1 : parseInt(classKey)] = value
+				}
+				object[levelKey] = newObject
 			}
-			this.levelsPerClass[levelKey] = newObject
 		}
 
-		for (const [levelKey, oldObject] of Object.entries(this.levelsSumsPerClass)) {
-			const newObject: {[classKey: string]: number} = {}
-			for (let [classKey, value] of Object.entries(oldObject)) {
-				newObject[parseInt(classKey) > classIndex ? parseInt(classKey) - 1 : parseInt(classKey)] = value
-			}
-			this.levelsSumsPerClass[levelKey] = newObject
-		}
+		moveClassIndexes(this.levelsPerClass)
+		moveClassIndexes(this.levelsSumsPerClass)
 	}
 
 	/**
@@ -301,6 +298,7 @@ export default class Entry {
 			if ("group_together" in input.levels[levelKey].rules)
 				this.value +=
 					GroupTogether.getEntryValue(this, input, levelKey) *
+					RuleOrder["group_together"].priority *
 					(input.levels[levelKey].priority ?? 1) *
 					(input.levels[levelKey].rules["group_together"] ?? 1)
 
@@ -308,6 +306,7 @@ export default class Entry {
 			if ("balance_count" in input.levels[levelKey].rules) {
 				this.value +=
 					BalanceCount.getEntryValue(this, input, levelKey) *
+					RuleOrder["balance_count"].priority *
 					(input.levels[levelKey].priority ?? 1) *
 					(input.levels[levelKey].rules["balance_count"] ?? 1)
 			}
