@@ -12,7 +12,6 @@ class BalanceCountRule extends Rule {
 	/**
 	 * Associer une valeur relative à la règle d'équilibrage des options sur les classes qui ont l'option, en fonction d'une certaine disposition.
 	 * Définit le nombre d'élèves ayant l'option idéal par classe qui possède l'option, puis incrémente la valeur pour chaque dénombrement différent.
-	 * On autorise une marge d'imprécision à définir.
 	 */
 	override getEntryValue(entry: Entry, _input: Input, levelKey: string): number {
 		const countGoal = this.getCountPerClass(entry, levelKey)
@@ -31,6 +30,8 @@ class BalanceCountRule extends Rule {
 
 	/**
 	 * @inheritDoc
+	 * Pénalisation de la valeur si le joueur possède une option déjà trop présente dans sa classe.
+	 * Il ne doit pas être déplacé dans les classes qui ont déjà trop l'option.
 	 */
 	override getStudentValue(entry: Entry, input: Input, student: Student): {value: number; worseClasses: Class[]} {
 		let value = 0
@@ -48,7 +49,7 @@ class BalanceCountRule extends Rule {
 			}
 		}
 
-		for (let levelKey of Object.keys(student.levels)) {
+		for (let levelKey in student.levels) {
 			// Si son option n'a pas un nombre idéal défini par classe, on ne fait rien.
 			if (!(levelKey in levelGoals)) continue
 

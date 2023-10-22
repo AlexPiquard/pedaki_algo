@@ -33,6 +33,7 @@ export default class Class {
 	}
 
 	toCount(...keysMask: string[]) {
+		// TODO cache
 		const countLevel: {[level: string]: number} = {}
 		for (const student of this.students) {
 			for (const levelKey of Object.keys(student.levels)) {
@@ -43,15 +44,36 @@ export default class Class {
 		return countLevel
 	}
 
-	toString(...keysMask: string[]) {
+	toLevel(...keysMask: string[]) {
+		// TODO à utiliser
+		// TODO cache
+		const countLevel = this.toCount(...keysMask)
+		const sumLevel: {[levelKey: string]: number} = {}
+		for (const student of this.students) {
+			for (const [levelKey, level] of Object.entries(student.levels)) {
+				if (!keysMask.includes(levelKey)) continue
+				sumLevel[levelKey] = sumLevel[levelKey] ? sumLevel[levelKey] + level : level
+			}
+		}
+
+		for (let [levelKey, sum] of Object.entries(sumLevel)) {
+			sumLevel[levelKey] = Math.round((sum / countLevel[levelKey]) * 10) / 10
+		}
+
+		return sumLevel
+	}
+
+	toString(showLevel?: boolean, ...keysMask: string[]) {
 		const countGender: {[gender: string]: number} = {}
 		const countLevel: {[level: string]: number} = {}
+		const sumLevel: {[level: string]: number} = {}
 
 		for (const student of this.students) {
 			countGender[student.gender] = countGender[student.gender] ? countGender[student.gender] + 1 : 1
 
-			for (const levelKey of Object.keys(student.levels)) {
+			for (const [levelKey, level] of Object.entries(student.levels)) {
 				countLevel[levelKey] = countLevel[levelKey] ? countLevel[levelKey] + 1 : 1
+				sumLevel[levelKey] = sumLevel[levelKey] ? sumLevel[levelKey] + level : level
 			}
 		}
 
@@ -64,7 +86,9 @@ export default class Class {
 
 		for (const [levelKey, count] of Object.entries(countLevel)) {
 			if (!keysMask.includes(levelKey)) continue
-			str += `${levelKey}: ${count}, `
+			str += `${levelKey}: ${count}`
+			if (showLevel) str += ` (${Math.round((sumLevel[levelKey] / countLevel[levelKey]) * 10) / 10})`
+			str += ", "
 		}
 
 		return str.substring(0, str.length - 2) + "}"

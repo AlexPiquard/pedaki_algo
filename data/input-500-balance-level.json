@@ -1,0 +1,31 @@
+{
+  "counts": {
+    "min_classes": 5,
+    "max_classes": 5,
+    "min_students": 100,
+    "max_students": 100,
+    "rule": "minimize"
+  },
+  "relations": {
+    "positive_priority": 0,
+    "negative_priority": 0,
+    "required_priority": 0,
+    "forbidden_priority": 0
+  },
+  "gender": {
+    "priority": 0,
+    "parity": {
+      "M": 50,
+      "F": 50
+    }
+  },
+  "levels": {
+    "allemand": {
+      "priority": 1,
+      "rules": {
+        "group_together": 1,
+        "balance_level": 1
+      }
+    }
+  }
+}

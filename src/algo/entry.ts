@@ -2,15 +2,11 @@ import Class, {ClassWithIndex} from "./class.ts"
 import Genetic, {
 	CLASS_WRONG_AMOUNT_MULTIPLIER,
 	CLASS_WRONG_SIZE_MULTIPLIER,
-	MAX_LEVEL,
 	MAX_STUDENTS_TO_MOVE,
-	MIN_LEVEL,
 	RuleOrder,
 } from "./genetic.ts"
 import {getStudentValue, Student} from "./student.ts"
-import {Input} from "./input.ts"
-import {GroupTogether} from "./rules/group_together.ts"
-import {BalanceCount} from "./rules/balance_count.ts"
+import {Input, LevelRuleType} from "./input.ts"
 
 export default class Entry {
 	public genetic: Genetic
@@ -231,7 +227,6 @@ export default class Entry {
 			let m = 0,
 				f = 0
 			const levelsCount: {[level: string]: number} = {}
-			const levelsSum: {[level: string]: number} = {}
 
 			for (const s of c.getStudents()) {
 				if (s.gender === "M") m++
@@ -239,9 +234,6 @@ export default class Entry {
 
 				for (const levelKey of Object.keys(s.levels)) {
 					levelsCount[levelKey] = levelsCount[levelKey] ? levelsCount[levelKey] + 1 : 1
-					levelsSum[levelKey] = levelsSum[levelKey]
-						? levelsSum[levelKey] + s.levels[levelKey]
-						: s.levels[levelKey]
 				}
 
 				// Respect des relations entre élèves.
@@ -269,22 +261,15 @@ export default class Entry {
 					(input.gender?.priority ?? 1)
 			}
 
-			// Respect des niveaux.
+			// Respect des options.
 			for (const [levelKey, levelInput] of Object.entries(input.levels)) {
 				if (!(levelKey in levelsCount)) continue
 
-				// Respect des relations entre niveaux.
+				// Respect des relations entre options.
 				for (const key of levelInput?.relations?.forbidden?.list ?? []) {
 					if (key in levelsCount)
 						this.value += (levelInput.priority ?? 1) * (levelInput.relations.forbidden?.priority ?? 1)
 				}
-
-				// Respect de l'équilibrage des niveaux pour ceux concernés.
-				if ("balance_level" in levelInput.rules)
-					this.value +=
-						Math.abs((MIN_LEVEL + MAX_LEVEL) / 2 - levelsSum[levelKey] / c.getStudents().length) *
-						(levelInput.priority ?? 1) *
-						(levelInput.rules["balance_level"] ?? 1)
 			}
 		}
 
@@ -294,21 +279,14 @@ export default class Entry {
 		for (const levelKey of this.genetic.getLevels) {
 			if (!(levelKey in input.levels)) continue
 
-			// Respect du regroupement des options, pour celles concernées.
-			if ("group_together" in input.levels[levelKey].rules)
+			// Respect des règles relatives aux options.
+			for (const [ruleKey, {rule, priority}] of Object.entries(RuleOrder)) {
+				if (!(ruleKey in input.levels[levelKey].rules)) continue
 				this.value +=
-					GroupTogether.getEntryValue(this, input, levelKey) *
-					RuleOrder["group_together"].priority *
+					rule.getEntryValue(this, input, levelKey) *
+					priority *
 					(input.levels[levelKey].priority ?? 1) *
-					(input.levels[levelKey].rules["group_together"] ?? 1)
-
-			// Respect de l'équilibrage des options sur les classes qui possèdent l'option.
-			if ("balance_count" in input.levels[levelKey].rules) {
-				this.value +=
-					BalanceCount.getEntryValue(this, input, levelKey) *
-					RuleOrder["balance_count"].priority *
-					(input.levels[levelKey].priority ?? 1) *
-					(input.levels[levelKey].rules["balance_count"] ?? 1)
+					(input.levels[levelKey].rules[ruleKey as LevelRuleType] ?? 1)
 			}
 		}
 
@@ -319,10 +297,14 @@ export default class Entry {
 		return this.classes.map(c => c.toCount(...keysMask))
 	}
 
-	toString(...keysMask: string[]) {
+	toLevel(...keysMask: string[]) {
+		return this.classes.map(c => c.toLevel(...keysMask))
+	}
+
+	toString(showLevel?: boolean, ...keysMask: string[]) {
 		let str = ""
 		for (const c of this.classes) {
-			str += "- " + c.toString(...keysMask) + "\n"
+			str += "- " + c.toString(showLevel, ...keysMask) + "\n"
 		}
 
 		return str

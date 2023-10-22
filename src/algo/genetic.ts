@@ -4,13 +4,13 @@ import {Student} from "./student.ts"
 import {GroupTogether} from "./rules/group_together.ts"
 import {BalanceCount} from "./rules/balance_count.ts"
 import {Rule} from "./rules/Rule.ts"
+import {BalanceLevel} from "./rules/balance_level.ts"
 
 export const MAX_STUDENTS_TO_MOVE = 50
 export const CLASS_WRONG_SIZE_MULTIPLIER = 100
 export const CLASS_WRONG_AMOUNT_MULTIPLIER = 1000
 export const MIN_LEVEL = 0
 export const MAX_LEVEL = 5
-export const PRECISION_RANGE = 1
 // const GENERATIONS = 1000
 const GENERATED_CHILDREN_PER_GENERATION = 50
 const GENERATION_SIZE = 50
@@ -18,6 +18,7 @@ const GENERATION_SIZE = 50
 export const RuleOrder: {[ruleKey: string]: {rule: Rule; priority: number}} = {
 	group_together: {rule: GroupTogether, priority: 2},
 	balance_count: {rule: BalanceCount, priority: 1},
+	balance_level: {rule: BalanceLevel, priority: 1},
 }
 
 export type Result = {entry: Entry; duration: number}
@@ -39,7 +40,7 @@ export default class Genetic {
 	}
 
 	public getLevelsOfRule(ruleKey: LevelRuleType): string[] {
-		return this.ruleLevels[ruleKey]
+		return this.ruleLevels[ruleKey] ?? []
 	}
 
 	private calculate(input: Input, students: Student[]) {
