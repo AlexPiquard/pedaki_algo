@@ -158,13 +158,13 @@ export default class Entry {
 		// Établir la liste des élèves les moins bien placés et n'en garder qu'un certain nombre.
 		// On obtient en même temps la liste des destinations idéales pour chaque élève.
 		const worseStudents = allStudents
-			.map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]])
-			.filter(([, [value]]) => value > 0)
-			.sort((a, b) => b[1][0] - a[1][0])
+			.map(s => ({student: s, ...getStudentValue(entry, input, s)}))
+			.filter(({value}) => value > 0)
+			.sort((a, b) => b.value - a.value)
 			.slice(0, moves)
 
-		for (const [student, [, destinations]] of worseStudents) {
-			this.randomChangeMove(student, destinations, entry, input)
+		for (const {student, bestClasses} of worseStudents) {
+			this.randomChangeMove(student, bestClasses, entry, input)
 		}
 
 		return entry
@@ -193,11 +193,11 @@ export default class Entry {
 			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé.
 			const otherStudent = otherClass
 				.getStudents()
-				.map(s => [s, getStudentValue(entry, input, s)] as [Student, [number, Class[]]])
+				.map(s => ({student: s, ...getStudentValue(entry, input, s)}))
 				.reduce((acc, cur) => {
-					if (cur[1][0] > acc[1][0]) return cur
+					if (cur.value > acc.value) return cur
 					return acc
-				})[0]
+				}).student
 
 			// Déplacer cet élève dans la classe initiale du premier élève (échanger).
 			entry.moveStudent(otherStudent, {class: otherClass, index: entry.classes.indexOf(otherClass)}, studentClass)

@@ -32,7 +32,7 @@ class BalanceCountRule extends Rule {
 	/**
 	 * @inheritDoc
 	 */
-	override getStudentValue(entry: Entry, input: Input, student: Student): [number, Class[]] {
+	override getStudentValue(entry: Entry, input: Input, student: Student): {value: number; worseClasses: Class[]} {
 		let value = 0
 
 		const levelGoals: {[level: string]: number} = {}
@@ -72,7 +72,7 @@ class BalanceCountRule extends Rule {
 			)
 		}
 
-		return [value, worseClasses]
+		return {value, worseClasses}
 	}
 
 	/**

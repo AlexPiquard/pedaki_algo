@@ -14,8 +14,8 @@ class GroupTogetherRule extends Rule {
 	 */
 	override getEntryValue(entry: Entry, input: Input, levelKey: string): number {
 		let sum = 0
-		for (const [, levelValue] of this.getExcludedClasses(entry, input, levelKey)) {
-			sum += levelValue ?? 0
+		for (const {levelCount} of this.getExcludedClasses(entry, input, levelKey)) {
+			sum += levelCount ?? 0
 		}
 
 		return sum
@@ -26,10 +26,10 @@ class GroupTogetherRule extends Rule {
 	 * L'élève peut être déplacé dans les classes qui regroupent une ou plusieurs de ses options.
 	 * Si aucune classe n'est concernée, alors on lui fait éviter les classes qui regroupent une option.
 	 */
-	override getStudentValue(entry: Entry, input: Input, student: Student): [number, Class[]] {
+	override getStudentValue(entry: Entry, input: Input, student: Student): {value: number; worseClasses: Class[]} {
 		let value = 0
 
-		const levelExcludedClasses: {[level: string]: [string, number][]} = {}
+		const levelExcludedClasses: {[level: string]: {classKey: string; levelCount: number}[]} = {}
 		const studentClassIndex = entry.searchStudent(student)?.index!
 		let worseClasses: Class[] = entry.classes
 
@@ -45,13 +45,13 @@ class GroupTogetherRule extends Rule {
 			// On exclut toutes les classes qui ne contiennent aucune de ses options à regrouper.
 			// Donc, on retire de la liste les classes qui doivent contenir son option.
 			worseClasses = worseClasses.filter(c =>
-				levelExcludedClasses[levelKey].find(([classKey]) => entry.classes[parseInt(classKey)] === c)
+				levelExcludedClasses[levelKey].find(({classKey}) => entry.classes[parseInt(classKey)] === c)
 			)
 
 			// On récupère le nombre d'élèves qui ont son option dans sa classe.
 			const studentsWithSameOptionInClass = levelExcludedClasses[levelKey].find(
-				([i]: [string, number]) => parseInt(i) == studentClassIndex
-			)?.[1]
+				({classKey}) => parseInt(classKey) == studentClassIndex
+			)?.levelCount
 			if (!studentsWithSameOptionInClass) continue
 
 			// On incrémente le nombre d'élèves bien placés, à la valeur retournée (s'il est le seul mal placé, il est vraiment très mal placé).
@@ -68,7 +68,7 @@ class GroupTogetherRule extends Rule {
 				// On garde la classe si elle regroupe au moins une option, donc si elle n'apparait pas dans au moins une liste de classes exclues.
 				return Object.values(levelExcludedClasses).find(
 					excludedClasses =>
-						!excludedClasses.find(([excludedClassKey]) => parseInt(excludedClassKey) === classKey)
+						!excludedClasses.find(excludedObject => parseInt(excludedObject.classKey) === classKey)
 				)
 			})
 		}
@@ -79,8 +79,7 @@ class GroupTogetherRule extends Rule {
 			if (levelKey in student.levels) continue
 
 			// Si l'élève est dans une classe qui ne doit pas avoir l'option, on ne fait rien non plus.
-			if (excludedClasses.find(([classIndex]: [string, number]) => parseInt(classIndex) == studentClassIndex))
-				continue
+			if (excludedClasses.find(({classKey}) => parseInt(classKey) == studentClassIndex)) continue
 
 			// On incrémente le nombre d'élèves ayant la bonne option dans la classe, à la valeur retournée.
 			value +=
@@ -89,22 +88,25 @@ class GroupTogetherRule extends Rule {
 				(input.levels[levelKey].rules["group_together"] ?? 1)
 		}
 
-		return [value, worseClasses]
+		return {value, worseClasses}
 	}
 
 	/**
 	 * Retourne la liste des classes qui ne doivent pas contenir une certaine option.
 	 * Associe à chaque indice de classe, le nombre d'élèves qui ont l'option (et qui ne devraient donc pas l'avoir).
 	 */
-	public getExcludedClasses = (entry: Entry, input: Input, level: string): [string, number][] => {
+	public getExcludedClasses = (
+		entry: Entry,
+		input: Input,
+		level: string
+	): {classKey: string; levelCount: number}[] => {
 		// Estimer le nombre de classes minimum si on regroupe correctement.
 		const classesForLevel = Math.ceil(entry.genetic.getLevelCount(level) / input.counts.max_students)
-		// TODO changer le type retourné ?
 
 		// Exclure les classes ayant le plus l'option.
 		return Object.keys(entry.classes)
-			.map(classKey => [classKey, entry.getLevelCountByClass(level)[classKey] ?? 0] as [string, number])
-			.sort((a, b) => a[1] - b[1])
+			.map(classKey => ({classKey, levelCount: entry.getLevelCountByClass(level)[classKey] ?? 0}))
+			.sort((a, b) => a.levelCount - b.levelCount)
 			.slice(0, -classesForLevel)
 	}
 }

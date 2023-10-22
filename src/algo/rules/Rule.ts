@@ -13,5 +13,9 @@ export abstract class Rule {
 	 * Retourne une valeur relative à un élève et une règle, correspondant à son placement actuel.
 	 * Retourne également la liste des classes dans lesquels il ne doit pas être déplacé.
 	 */
-	public abstract getStudentValue(entry: Entry, input: Input, student: Student): [number, Class[]]
+	public abstract getStudentValue(
+		entry: Entry,
+		input: Input,
+		student: Student
+	): {value: number; worseClasses: Class[]}
 }
