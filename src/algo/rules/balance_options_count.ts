@@ -1,6 +1,6 @@
 import Entry from "../entry.ts"
-import {Rule} from "./Rule.ts"
-import {Input} from "../input.ts"
+import {Rule} from "./rule.ts"
+import {InputRule} from "../input.ts"
 import Class from "../class.ts"
 import {Student} from "../student.ts"
 
@@ -8,16 +8,16 @@ import {Student} from "../student.ts"
  * Répartir équitablement le nombre d'élèves ayant une option dans chaque classe possédant cette option.
  * C'est une règle complémentaire qui ne peut pas exister seule.
  */
-class BalanceCountRule extends Rule {
+class BalanceOptionsCountRule extends Rule {
 	/**
 	 * Associer une valeur relative à la règle d'équilibrage des options sur les classes qui ont l'option, en fonction d'une certaine disposition.
 	 * Définit le nombre d'élèves ayant l'option idéal par classe qui possède l'option, puis incrémente la valeur pour chaque dénombrement différent.
 	 */
-	override getEntryValue(entry: Entry, _input: Input, levelKey: string): number {
-		const countGoal = this.getCountPerClass(entry, levelKey)
+	override getEntryValue(entry: Entry, rule: InputRule): number {
+		const countGoal = this.getCountPerClass(entry, rule.option())
 		let value = 0
 		for (const classKey of Object.keys(entry.classes)) {
-			const count = entry.getLevelCountByClass(levelKey)[classKey]
+			const count = entry.getOptionCountOfClass(rule.option())[classKey]
 
 			// Si personne n'a l'option dans cette classe, on l'ignore.
 			if (!count) continue
@@ -33,45 +33,27 @@ class BalanceCountRule extends Rule {
 	 * Pénalisation de la valeur si le joueur possède une option déjà trop présente dans sa classe.
 	 * Il ne doit pas être déplacé dans les classes qui ont déjà trop l'option.
 	 */
-	override getStudentValue(entry: Entry, input: Input, student: Student): {value: number; worseClasses: Class[]} {
+	override getStudentValue(entry: Entry, rule: InputRule, student: Student): {value: number; worseClasses: Class[]} {
 		let value = 0
 
-		const levelGoals: {[level: string]: number} = {}
+		const levelGoal = this.getCountPerClass(entry, rule.option())
 		const studentClassIndex = entry.searchStudent(student)?.index!
 		let worseClasses: Class[] = []
 
-		for (const [levelKey, levelInput] of Object.entries(input.levels)) {
-			for (const [ruleKey] of Object.entries(levelInput.rules)) {
-				if (ruleKey === "balance_count") {
-					if (levelKey in levelGoals) continue
-					levelGoals[levelKey] = this.getCountPerClass(entry, levelKey)
-				}
-			}
-		}
+		// On récupère le nombre d'élèves ayant cette option dans sa classe.
+		const count = entry.getOptionCountOfClass(rule.option())[studentClassIndex]
 
-		for (let levelKey in student.levels) {
-			// Si son option n'a pas un nombre idéal défini par classe, on ne fait rien.
-			if (!(levelKey in levelGoals)) continue
+		// Si cette valeur est supérieure à l'objectif, alors on incrémente la différence.
+		const diff = this.getDifference(count, levelGoal)
+		if (diff > 0) value += diff
 
-			// On récupère le nombre d'élèves ayant cette option dans sa classe.
-			const count = entry.getLevelCountByClass(levelKey)[studentClassIndex]
-			// Si cette valeur est supérieure à l'objectif, alors on incrémente la différence.
-			const diff = this.getDifference(count, levelGoals[levelKey])
-			if (diff > 0)
-				value +=
-					diff * (input.levels[levelKey].priority ?? 1) * (input.levels[levelKey].rules["balance_count"] ?? 1)
-
-			// On exclut les classes qui ont trop l'option, de la liste de celles idéales pour l'élève.
-			worseClasses.push(
-				...entry.classes.filter(
-					(_c, classKey) =>
-						this.getDifference(
-							entry.getLevelCountByClass(levelKey)?.[classKey] ?? 0,
-							levelGoals[levelKey]
-						) >= 0
-				)
+		// On exclut les classes qui ont trop l'option, de la liste de celles idéales pour l'élève.
+		worseClasses.push(
+			...entry.classes.filter(
+				(_c, classKey) =>
+					this.getDifference(entry.getOptionCountOfClass(rule.option())?.[classKey] ?? 0, levelGoal) >= 0
 			)
-		}
+		)
 
 		return {value, worseClasses}
 	}
@@ -79,8 +61,8 @@ class BalanceCountRule extends Rule {
 	/**
 	 * Obtenir le nombre idéal d'élèves ayant l'option par classe.
 	 */
-	public getCountPerClass = (entry: Entry, level: string) => {
-		return entry.genetic.getLevelCount(level) / Object.keys(entry.getLevelCountByClass(level)).length
+	public getCountPerClass = (entry: Entry, option: string) => {
+		return entry.genetic.input().optionCount(option) / Object.keys(entry.getOptionCountOfClass(option)).length
 	}
 
 	/**
@@ -98,4 +80,4 @@ class BalanceCountRule extends Rule {
 	}
 }
 
-export const BalanceCount = new BalanceCountRule()
+export const BalanceOptionsCount = new BalanceOptionsCountRule()

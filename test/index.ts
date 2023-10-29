@@ -3,15 +3,15 @@ import Genetic from "../src/algo/genetic.ts"
 import * as path from "path"
 import * as url from "url"
 import * as assert from "assert"
-import {BalanceLevel} from "../src/algo/rules/balance_level.ts";
+import {BalanceOptionsClassLevel} from "../src/algo/rules/balance_options_class_level.ts"
 
 export type Module = {
 	studentsFile: string
 	inputFile: string
 	keysMask: string[]
 	skip?: boolean
-	countOutput: {[levelKey: string]: number}[]
-	levelOutput: {[levelKey: string]: number}[]
+	countOutput: {[option: string]: number}[]
+	levelOutput: {[option: string]: number}[]
 	showLevel?: boolean
 }
 const __filename = url.fileURLToPath(import.meta.url)
@@ -28,9 +28,9 @@ describe("get classes from input", function () {
 			const students = studentsFile.default
 			const input = inputFile.default
 
-			const algo = new Genetic()
-			const {entry, duration} = algo.solve(students, input)
-			console.log(`value: ${entry.getValue(input)}, duration: ${duration}`)
+			const algo = new Genetic(students, input)
+			const {entry, duration} = algo.solve()
+			console.log(`value: ${entry.getValue()}, duration: ${duration}`)
 			console.log(entry.toString(showLevel, ...keysMask))
 
 			const resultCount = entry.toCount(...keysMask).sort()
@@ -40,7 +40,7 @@ describe("get classes from input", function () {
 
 			// On vérifie que chaque classe du résultat était bien dénombrée à l'identique dans le test.
 			if (countOutput) {
-				for (let entryCount of countOutput) {
+				for (const entryCount of countOutput) {
 					assert.notEqual(
 						resultCount.find(v => objectEquals(v, entryCount)),
 						undefined
@@ -50,9 +50,9 @@ describe("get classes from input", function () {
 
 			// On vérifie que chaque classe du résultat respecte bien son éventuel niveau moyen pour chaque option.
 			if (levelOutput) {
-				for (let entryLevel of levelOutput) {
+				for (const entryLevel of levelOutput) {
 					assert.notEqual(
-						resultLevel.find(v => objectEquals(v, entryLevel, BalanceLevel.ACCURACY)),
+						resultLevel.find(v => objectEquals(v, entryLevel, BalanceOptionsClassLevel.ACCURACY)),
 						undefined
 					)
 				}
@@ -67,7 +67,7 @@ describe("get classes from input", function () {
 const objectEquals = (o1: any, o2: any, numbersAccuracy?: number): boolean => {
 	if (Object.keys(o1).length !== Object.keys(o2).length) return false
 
-	for (let key of Object.keys(o1)) {
+	for (const key of Object.keys(o1)) {
 		if (!(key in o2)) return false
 		if (typeof o2[key] !== typeof o1[key]) return false
 		if (typeof o2[key] === "object") return objectEquals(o1[key], o2[key])

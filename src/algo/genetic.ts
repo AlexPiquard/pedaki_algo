@@ -1,89 +1,61 @@
 import Entry from "./entry.ts"
-import {Input, LevelRuleType} from "./input.ts"
-import {Student} from "./student.ts"
-import {GroupTogether} from "./rules/group_together.ts"
-import {BalanceCount} from "./rules/balance_count.ts"
-import {Rule} from "./rules/Rule.ts"
-import {BalanceLevel} from "./rules/balance_level.ts"
+import {Input, RawInput} from "./input.ts"
+import {GatherOption} from "./rules/gather_option.ts"
+import {BalanceOptionsCount} from "./rules/balance_options_count.ts"
+import {Rule} from "./rules/rule.ts"
+import {BalanceOptionsClassLevel} from "./rules/balance_options_class_level.ts"
+import {RawStudent, Student} from "./student.ts"
 
 export const MAX_STUDENTS_TO_MOVE = 50
-export const CLASS_WRONG_SIZE_MULTIPLIER = 100
-export const CLASS_WRONG_AMOUNT_MULTIPLIER = 1000
 export const MIN_LEVEL = 0
 export const MAX_LEVEL = 5
-// const GENERATIONS = 1000
-const GENERATED_CHILDREN_PER_GENERATION = 50
-const GENERATION_SIZE = 50
+export const DEFAULT_PRIORITY = 1
+const GENERATED_CHILDREN_PER_GENERATION = 10
+const GENERATION_SIZE = 10
 
 export const RuleOrder: {[ruleKey: string]: {rule: Rule; priority: number}} = {
-	group_together: {rule: GroupTogether, priority: 2},
-	balance_count: {rule: BalanceCount, priority: 1},
-	balance_level: {rule: BalanceLevel, priority: 1},
+	gather_option: {rule: GatherOption, priority: 2},
+	balance_options_count: {rule: BalanceOptionsCount, priority: 1},
+	balance_options_class_level: {rule: BalanceOptionsClassLevel, priority: 1},
 }
 
 export type Result = {entry: Entry; duration: number}
 
 export default class Genetic {
-	// Liste complète des options existantes.
-	private levels: string[] = []
-	// Nombre d'élèves qui ont chaque option.
-	private levelsCount: {[levelKey: string]: number} = {}
-	// Liste des options qui utilisent chaque règle.
-	private ruleLevels: {[ruleKey: string]: string[]} = {}
+	private readonly _students: Student[]
+	private readonly _input: Input
 
-	public get getLevels() {
-		return this.levels
+	constructor(students: RawStudent[], rawInput: RawInput) {
+		this._students = students.map(student => new Student(student))
+		this._input = new Input(rawInput, this._students)
 	}
 
-	public getLevelCount(levelKey: string): number {
-		return levelKey in this.levelsCount ? this.levelsCount[levelKey] : 0
+	public students() {
+		return this._students
 	}
 
-	public getLevelsOfRule(ruleKey: LevelRuleType): string[] {
-		return this.ruleLevels[ruleKey] ?? []
+	public input() {
+		return this._input
 	}
 
-	private calculate(input: Input, students: Student[]) {
-		for (const s of students) {
-			for (const levelKey of Object.keys(s.levels)) {
-				if (!this.levels.includes(levelKey)) {
-					this.levels.push(levelKey)
-					this.levelsCount[levelKey] = 1
-					continue
-				}
-
-				this.levelsCount[levelKey]++
-			}
-		}
-
-		for (const [levelKey, levelInput] of Object.entries(input.levels)) {
-			for (const [ruleKey] of Object.entries(levelInput.rules)) {
-				if (!(ruleKey in this.ruleLevels)) this.ruleLevels[ruleKey] = []
-				this.ruleLevels[ruleKey].push(levelKey)
-			}
-		}
-	}
-
-	public solve(students: Student[], input: Input): Result {
+	public solve(): Result {
 		const startTime = Date.now()
 
-		this.calculate(input, students)
-
-		const entries = [Entry.from(this, students, input.counts.max_students)]
-		let bestValue = entries[0].getValue(input)
+		const entries = [Entry.default(this)]
+		let bestValue = entries[0].getValue()
 
 		while (bestValue > 0) {
 			// On fait un changement aléatoire dans chaque configuration.
 			for (let i = 0; i < GENERATED_CHILDREN_PER_GENERATION; ++i) {
-				entries.push(entries[i % entries.length].randomChange(input))
+				entries.push(entries[i % entries.length].randomChange())
 			}
 
 			// On ne garde que les meilleurs.
 			entries
-				.sort((a, b) => a.getValue(input) - b.getValue(input))
+				.sort((a, b) => a.getValue() - b.getValue())
 				.splice(GENERATION_SIZE, GENERATED_CHILDREN_PER_GENERATION)
 
-			bestValue = entries[0].getValue(input)
+			bestValue = entries[0].getValue()
 		}
 
 		return {entry: entries[0], duration: (Date.now() - startTime) / 1000}
