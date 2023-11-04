@@ -30,32 +30,24 @@ class BalanceOptionsCountRule extends Rule {
 
 	/**
 	 * @inheritDoc
-	 * Pénalisation de la valeur si le joueur possède une option déjà trop présente dans sa classe.
+	 * Pénalisation de la valeur si l'élève possède une option déjà trop présente dans sa classe.
 	 * Il ne doit pas être déplacé dans les classes qui ont déjà trop l'option.
 	 */
 	override getStudentValue(entry: Entry, rule: InputRule, student: Student): {value: number; worseClasses: Class[]} {
-		let value = 0
-
-		const levelGoal = this.getCountPerClass(entry, rule.option())
-		const studentClassIndex = entry.searchStudent(student)?.index!
-		let worseClasses: Class[] = []
+		// Récupération de l'objectif de nombre d'élèves ayant l'option par classe.
+		const countGoal = this.getCountPerClass(entry, rule.option())
 
 		// On récupère le nombre d'élèves ayant cette option dans sa classe.
-		const count = entry.getOptionCountOfClass(rule.option())[studentClassIndex]
+		const count = entry.getOptionCountOfClass(rule.option())[entry.searchStudent(student)?.index!]
 
-		// Si cette valeur est supérieure à l'objectif, alors on incrémente la différence.
-		const diff = this.getDifference(count, levelGoal)
-		if (diff > 0) value += diff
-
-		// On exclut les classes qui ont trop l'option, de la liste de celles idéales pour l'élève.
-		worseClasses.push(
-			...entry.classes.filter(
+		// On retourne la différence entre la valeur et l'objectif, ainsi que les classes qui ont trop l'option.
+		return {
+			value: Math.max(0, this.getDifference(count, countGoal)),
+			worseClasses: entry.classes.filter(
 				(_c, classKey) =>
-					this.getDifference(entry.getOptionCountOfClass(rule.option())?.[classKey] ?? 0, levelGoal) >= 0
-			)
-		)
-
-		return {value, worseClasses}
+					this.getDifference(entry.getOptionCountOfClass(rule.option())?.[classKey] ?? 0, countGoal) >= 0
+			),
+		}
 	}
 
 	/**

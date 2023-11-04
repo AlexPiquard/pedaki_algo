@@ -25,7 +25,7 @@ export default class Entry {
 	private calculate() {
 		for (const [i, c] of Object.entries(this.classes)) {
 			for (const s of c.getStudents()) {
-				for (const [option, level] of Object.entries(s.options())) {
+				for (const [option, level] of Object.entries(s.levels())) {
 					if (!(option in this.optionsPerClass)) {
 						this.optionsPerClass[option] = {}
 						this.levelSumsPerClass[option] = {}
@@ -106,7 +106,7 @@ export default class Entry {
 		from.class.removeStudent(student)
 		to.class.addStudent(student)
 
-		for (const [option, level] of Object.entries(student.options())) {
+		for (const [option, level] of Object.entries(student.levels())) {
 			this.optionsPerClass[option][from.index]--
 			this.levelSumsPerClass[option][from.index] -= level
 

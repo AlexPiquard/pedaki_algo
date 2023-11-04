@@ -12,3 +12,5 @@ export const countOutput = [
   {},
   {}
 ]
+
+// TODO il y a des variations de résultats, des fois c'est 98-99, il faut soit l'accepter dans le test, soit forcer le non-equilibrage

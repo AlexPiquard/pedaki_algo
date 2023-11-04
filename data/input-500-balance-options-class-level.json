@@ -10,7 +10,7 @@
       "options": "allemand"
     },
     {
-      "rule": "balance_options_class_level",
+      "rule": "balance_option_class_level",
       "priority": 1,
       "options": "allemand"
     }

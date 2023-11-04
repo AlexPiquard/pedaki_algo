@@ -3,7 +3,7 @@ import Genetic from "../src/algo/genetic.ts"
 import * as path from "path"
 import * as url from "url"
 import * as assert from "assert"
-import {BalanceOptionsClassLevel} from "../src/algo/rules/balance_options_class_level.ts"
+import {BalanceOptionsClassLevel} from "../src/algo/rules/balance_option_class_level.ts"
 
 export type Module = {
 	studentsFile: string

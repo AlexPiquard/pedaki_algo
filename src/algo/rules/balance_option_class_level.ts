@@ -32,48 +32,27 @@ class BalanceOptionsClassLevelRule extends Rule {
 	 * Il ne doit pas être déplacé dans les classes dans lesquelles il aggraverait l'équilibre du niveau.
 	 */
 	override getStudentValue(entry: Entry, rule: InputRule, student: Student): {value: number; worseClasses: Class[]} {
-		let value = 0
-
-		const classLevelDiff: {[option: string]: {[classKey: string]: number}} = {}
 		const studentClassIndex = entry.searchStudent(student)?.index!
 
-		// Obtenir le niveau moyen d'une option dans une classe.
-		const classLevelDiffCache = (option: string, classKey: string) => {
-			if (option in classLevelDiff && classKey in classLevelDiff[option]) return classLevelDiff[option][classKey]
-			else {
-				const classDiff = this.getDifference(this.getAverageLevelForClass(entry, option, classKey))
-				if (!(option in classLevelDiff)) classLevelDiff[option] = {}
-				classLevelDiff[option][classKey] = classDiff
-				return classDiff
-			}
-		}
-
-		// Récupération de la différence entre le niveau du joueur et la moyenne requise.
-		const studentDiff = this.getDifference(student.options()[rule.option()])
+		// Récupération de la différence entre le niveau de l'élève et la moyenne requise.
+		const studentDiff = this.getDifference(student.levels()[rule.option()])
 
 		// Récupération de la différence entre le niveau moyen de la classe et la moyenne requise.
-		const classDiff = classLevelDiffCache(rule.option(), studentClassIndex.toString())
+		const classDiff = this.getDifference(this.getAverageLevelForClass(entry, rule.option(), studentClassIndex.toString()))
 
-		// Si l'élève augmente un niveau de classe déjà trop haut, ou diminue un niveau déjà trop bas, on incrémente la valeur par rapport à la différence.
-		if ((studentDiff < 0 && classDiff < 0) || (studentDiff > 0 && classDiff > 0)) value += Math.floor(studentDiff)
-
-		// L'élève doit être déplacé dans les classes dans lesquelles il améliorerait l'équilibre du niveau.
-		const worseClasses = Object.entries(entry.classes)
-			.filter(([classKey]) => {
-				// Il peut aller dans cette classe s'il améliore l'équilibre de tous ses niveaux.
-				// Donc il n'y va pas s'il y a un niveau qu'il n'améliore pas.
-				return entry.genetic
-					.input()
-					.ruleOptions("balance_options_class_level")
-					.find(option => {
-						const studentDiff = this.getDifference(student.options()[option])
-						const classDiff = classLevelDiffCache(option, classKey)
-						return (studentDiff < 0 && classDiff < 0) || (studentDiff > 0 && classDiff > 0)
-					})
-			})
-			.map(([, c]) => c)
-
-		return {value, worseClasses}
+		// On retourne la différence avec le niveau de la classe, ainsi que les classes dans lesquelles il n'améliorerait pas le niveau.
+		return {
+			value:
+				(studentDiff < 0 && classDiff < 0) || (studentDiff > 0 && classDiff > 0) ? Math.floor(studentDiff) : 0,
+			worseClasses: Object.entries(entry.classes)
+				.filter(([classKey]) => {
+					// On conserve cette classe si l'élève n'améliore pas le niveau.
+					const studentDiff = this.getDifference(student.levels()[rule.option()])
+					const classDiff = this.getDifference(this.getAverageLevelForClass(entry, rule.option(), classKey))
+					return (studentDiff < 0 && classDiff < 0) || (studentDiff > 0 && classDiff > 0)
+				})
+				.map(([, c]) => c),
+		}
 	}
 
 	/**

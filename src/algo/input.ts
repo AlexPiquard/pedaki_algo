@@ -10,10 +10,10 @@ export type LevelRuleType =
 	| "balance_options_class_count"
 	// Équilibrer le niveau d'une certaine option dans chaque classe qui possède l'option.
 	// C'est une règle complémentaire qui ne peut pas exister sans "gather_option".
-	| "balance_options_class_level"
+	| "balance_option_class_level"
 	// Répartir équitablement le nombre d'élèves ayant une option dans chaque classe possédant cette option.
 	// C'est une règle complémentaire qui ne peut pas exister sans "gather_option".
-	| "balance_options_count"
+	| "balance_option_count"
 	// Maximiser le nombre d'élèves dans chaque classe, en respectant les contraintes.
 	// Règle inverse de "maximize_classes", ne peut pas être utilisé en même temps.
 	| "maximize_class_size"
@@ -31,8 +31,8 @@ const RuleRequirements: {[rule: string]: string[]} = {
 	gather_option: ["options"],
 	conflicting_options: ["options"],
 	balance_options_class_count: ["options"],
-	balance_options_class_level: ["options"],
-	balance_options_count: ["options"],
+	balance_option_class_level: ["options"],
+	balance_option_count: ["options"],
 	maximize_class_size: [],
 	maximise_classes: [],
 	positive_relationships: ["students"],
@@ -114,8 +114,6 @@ export class Input {
 	private _rulesByKey: {[ruleKey: string]: InputRule[]} = {}
 	// Nombre d'élèves qui ont chaque option.
 	private _optionCount: {[option: string]: number} = {}
-	// Liste des options qui utilisent chaque règle.
-	private _ruleOptions: {[ruleKey: string]: string[]} = {}
 
 	constructor(input: RawInput, students: Student[]) {
 		this.input = input
@@ -148,18 +146,11 @@ export class Input {
 	}
 
 	/**
-	 * Obtenir la liste des options qui sont concernées par une certaine règle, dans l'ensemble des règles.
-	 */
-	public ruleOptions(ruleKey: LevelRuleType): string[] {
-		return this._ruleOptions[ruleKey] ?? []
-	}
-
-	/**
 	 * Calculer les statistiques relatives aux données initiales, une seule fois.
 	 */
 	private calculate(students: Student[]) {
 		for (const s of students) {
-			for (const option of Object.keys(s.options())) {
+			for (const option of Object.keys(s.levels())) {
 				if (!this._options.includes(option)) {
 					this._options.push(option)
 					this._optionCount[option] = 1
@@ -176,11 +167,6 @@ export class Input {
 
 			if (!(rule.rule in this._rulesByKey)) this._rulesByKey[rule.rule] = []
 			this._rulesByKey[rule.rule].push(inputRule)
-
-			for (const option of inputRule.options()) {
-				if (!(rule.rule in this._ruleOptions)) this._ruleOptions[rule.rule] = []
-				this._ruleOptions[rule.rule].push(option)
-			}
 		}
 	}
 

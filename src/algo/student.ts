@@ -20,21 +20,21 @@ export interface RawStudent {
 export class Student {
 	private student: RawStudent
 
-	// Liste des options de l'élève, qui contient également son genre.
-	private readonly _options: {[option: string]: number}
+	// Liste des options de l'élève, qui contient également son genre, associé à chaque niveau.
+	private readonly _levels: {[option: string]: number}
 
 	constructor(student: RawStudent) {
 		this.student = student
 
-		this._options = {...this.student.levels, [this.student.gender]: 5}
+		this._levels = {...this.student.levels, [this.student.gender]: 5}
 	}
 
 	public id(): string {
 		return this.student.id
 	}
 
-	public options(): {[option: string]: number} {
-		return this._options
+	public levels(): {[option: string]: number} {
+		return this._levels
 	}
 
 	/**
@@ -57,13 +57,23 @@ export class Student {
 			if (currentPriority != priority) bestClasses = defaultClassList
 
 			// Réaliser les calculs pour chaque présence de cette règle dans l'input.
+			const worseClasses: Class[] = []
+			let commonWorseClasses: Class[] = defaultClassList
 			for (const inputRule of entry.genetic.input().rulesOfKey(ruleKey)) {
 				const studentValue = rule.getStudentValue(entry, inputRule, this)
 				value += studentValue.value * priority * inputRule.priority()
-				bestClasses = bestClasses.filter(c => !studentValue.worseClasses.includes(c))
+				worseClasses.push(...studentValue.worseClasses.filter(c => !worseClasses.includes(c)))
+				commonWorseClasses = commonWorseClasses.filter(c => studentValue.worseClasses.includes(c))
 			}
 
-			currentPriority = priority
+			// Si plusieurs options sont concernées et qu'il ne reste aucune classe de destination, on garde celles qui sont la meilleure d'au moins une option.
+			bestClasses = bestClasses.filter(c => {
+				if (entry.genetic.input().rulesOfKey(ruleKey).length > 1 && worseClasses.length >= defaultClassList.length)
+					return !commonWorseClasses.includes(c)
+				return !worseClasses.includes(c)
+			})
+
+			currentPriority = priority;
 		}
 
 		return {value, bestClasses}
