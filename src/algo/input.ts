@@ -2,6 +2,16 @@ import {DEFAULT_PRIORITY} from "./genetic.ts"
 import {Student} from "./student.ts"
 
 export type LevelRuleType =
+	// Maximiser le nombre d'élèves dans chaque classe, en respectant les contraintes.
+	// Règle inverse de "maximize_classes", ne peut pas être utilisé en même temps.
+	| "maximize_class_size"
+	// Maximiser le nombre de classes, en respectant les contraintes.
+	// Règle inverse de "maximize_class_size", ne peut pas être utilisé en même temps.
+	| "maximize_classes"
+	// Répartir équitablement le nombre d'élèves dans chaque classe.
+	// Si une option est associée à la règle, alors seulement cette option sera prise en compte.
+	// C'est une règle complémentaire qui ne peut pas exister seule.
+	| "balance_count"
 	// Regrouper une certaine option dans un minimum de classes.
 	| "gather_option"
 	// Interdire plusieurs options d'être dans une classe commune.
@@ -9,17 +19,8 @@ export type LevelRuleType =
 	// Équilibrer le dénombrement de plusieurs options dans un maximum de classes.
 	| "balance_options_class_count"
 	// Équilibrer le niveau d'une certaine option dans chaque classe qui possède l'option.
-	// C'est une règle complémentaire qui ne peut pas exister sans "gather_option".
+	// C'est une règle complémentaire qui ne peut pas exister seule.
 	| "balance_option_class_level"
-	// Répartir équitablement le nombre d'élèves ayant une option dans chaque classe possédant cette option.
-	// C'est une règle complémentaire qui ne peut pas exister sans "gather_option".
-	| "balance_option_count"
-	// Maximiser le nombre d'élèves dans chaque classe, en respectant les contraintes.
-	// Règle inverse de "maximize_classes", ne peut pas être utilisé en même temps.
-	| "maximize_class_size"
-	// Maximiser le nombre de classes, en respectant les contraintes.
-	// Règle inverse de "maximize_class_size", ne peut pas être utilisé en même temps.
-	| "maximize_classes"
 	// Respecter les relations positives entre élèves qui veulent être dans la même classe.
 	// Respecte une certaine hiérarchie, par exemple lien familial ou simple ami.
 	| "positive_relationships"
@@ -28,13 +29,13 @@ export type LevelRuleType =
 
 // Attributs requis pour chaque règle.
 const RuleRequirements: {[rule: string]: string[]} = {
+	maximize_class_size: [],
+	maximize_classes: [],
+	balance_count: [],
 	gather_option: ["options"],
 	conflicting_options: ["options"],
 	balance_options_class_count: ["options"],
 	balance_option_class_level: ["options"],
-	balance_option_count: ["options"],
-	maximize_class_size: [],
-	maximise_classes: [],
 	positive_relationships: ["students"],
 	negative_relationships: ["students"],
 }

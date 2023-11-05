@@ -31,25 +31,25 @@ class GatherOptionRule extends Rule {
 		// S'il a l'option, il ne doit pas être dans une classe qui ne la regroupe pas.
 		if (rule.option() in student.levels()) {
 			// S'il est dans une classe qui regroupe l'option, il est déjà bien placé.
-			if (!(studentClassIndex in excludedClasses)) return {value: 0, worseClasses: entry.classes}
+			if (!(studentClassIndex in excludedClasses)) return {value: 0, worseClasses: entry.classes()}
 
 			// On retourne le nombre d'élèves bien placés (s'il est le seul mal placé, il est vraiment très mal placé),
 			// ainsi que les classes qui ne regroupent pas l'option.
 			return {
-				value: entry.genetic.input().classSize() - excludedClasses[studentClassIndex],
-				worseClasses: Object.keys(excludedClasses).map(classKey => entry.classes[parseInt(classKey)]),
+				value: entry.genetic().input().classSize() - excludedClasses[studentClassIndex],
+				worseClasses: Object.keys(excludedClasses).map(classKey => entry.classes()[parseInt(classKey)]),
 			}
 		}
 		// S'il n'a pas l'option, il ne doit pas être dans une classe qui la regroupe.
 		else {
 			// S'il n'est pas dans une classe qui regroupe l'option, il est déjà bien placé.
-			if (studentClassIndex in excludedClasses) return {value: 0, worseClasses: entry.classes}
+			if (studentClassIndex in excludedClasses) return {value: 0, worseClasses: entry.classes()}
 
 			// On retourne le nombre d'élèves ayant la bonne option dans la classe,
 			// ainsi que les classes qui regroupent l'option.
 			return {
 				value: entry.getOptionCountOfClass(rule.option())?.[studentClassIndex],
-				worseClasses: entry.classes.filter((_c, i) => !(i in excludedClasses))
+				worseClasses: entry.classes().filter((_c, i) => !(i in excludedClasses)),
 			}
 		}
 	}
@@ -60,11 +60,13 @@ class GatherOptionRule extends Rule {
 	 */
 	public getExcludedClasses = (entry: Entry, option: string): {[classKey: string]: number} => {
 		// Estimer le nombre de classes minimum si on regroupe correctement.
-		const classesForLevel = Math.ceil(entry.genetic.input().optionCount(option) / entry.genetic.input().classSize())
+		const classesForLevel = Math.ceil(
+			entry.genetic().input().optionCount(option) / entry.genetic().input().classSize()
+		)
 
 		// Exclure les classes ayant le plus l'option.
 		return Object.fromEntries(
-			Object.keys(entry.classes)
+			Object.keys(entry.classes())
 				.map(classKey => [classKey, entry.getOptionCountOfClass(option)[classKey] ?? 0] as [string, number])
 				.sort((a, b) => a[1] - b[1])
 				.slice(0, -classesForLevel)

@@ -1,10 +1,12 @@
 import Entry from "./entry.ts"
 import {Input, RawInput} from "./input.ts"
 import {GatherOption} from "./rules/gather_option.ts"
-import {BalanceOptionsCount} from "./rules/balance_option_count.ts"
+import {BalanceCount} from "./rules/balance_count.ts"
 import {Rule} from "./rules/rule.ts"
 import {BalanceOptionsClassLevel} from "./rules/balance_option_class_level.ts"
 import {RawStudent, Student} from "./student.ts"
+import {MaximizeClassSize} from "./rules/maximize_class_size.ts"
+import {MaximizeClasses} from "./rules/maximize_classes.ts"
 
 export const MAX_STUDENTS_TO_MOVE = 50
 export const MIN_LEVEL = 0
@@ -15,7 +17,9 @@ const GENERATION_SIZE = 10
 
 export const RuleOrder: {[ruleKey: string]: {rule: Rule; priority: number}} = {
 	gather_option: {rule: GatherOption, priority: 2},
-	balance_option_count: {rule: BalanceOptionsCount, priority: 1},
+	maximize_class_size: {rule: MaximizeClassSize, priority: 2},
+	maximize_classes: {rule: MaximizeClasses, priority: 2},
+	balance_count: {rule: BalanceCount, priority: 1},
 	balance_option_class_level: {rule: BalanceOptionsClassLevel, priority: 1},
 }
 

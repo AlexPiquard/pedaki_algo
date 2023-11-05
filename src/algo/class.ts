@@ -41,6 +41,7 @@ export default class Class {
 				countLevel[option] = countLevel[option] ? countLevel[option] + 1 : 1
 			}
 		}
+		countLevel["total"] = this.students.length
 		return countLevel
 	}
 

@@ -47,7 +47,7 @@ export class Student {
 		let currentPriority = 0
 
 		const studentClassIndex = entry.searchStudent(this)?.index!
-		const defaultClassList = entry.classes.filter((_c, i) => i !== studentClassIndex)
+		const defaultClassList = entry.classes().filter((_c, i) => i !== studentClassIndex)
 		let bestClasses = defaultClassList
 
 		for (const [ruleKey, {rule, priority}] of Object.entries(RuleOrder)) {
@@ -59,7 +59,7 @@ export class Student {
 			// Réaliser les calculs pour chaque présence de cette règle dans l'input.
 			const worseClasses: Class[] = []
 			let commonWorseClasses: Class[] = defaultClassList
-			for (const inputRule of entry.genetic.input().rulesOfKey(ruleKey)) {
+			for (const inputRule of entry.genetic().input().rulesOfKey(ruleKey)) {
 				const studentValue = rule.getStudentValue(entry, inputRule, this)
 				value += studentValue.value * priority * inputRule.priority()
 				worseClasses.push(...studentValue.worseClasses.filter(c => !worseClasses.includes(c)))
@@ -68,12 +68,15 @@ export class Student {
 
 			// Si plusieurs options sont concernées et qu'il ne reste aucune classe de destination, on garde celles qui sont la meilleure d'au moins une option.
 			bestClasses = bestClasses.filter(c => {
-				if (entry.genetic.input().rulesOfKey(ruleKey).length > 1 && worseClasses.length >= defaultClassList.length)
+				if (
+					entry.genetic().input().rulesOfKey(ruleKey).length > 1 &&
+					worseClasses.length >= defaultClassList.length
+				)
 					return !commonWorseClasses.includes(c)
 				return !worseClasses.includes(c)
 			})
 
-			currentPriority = priority;
+			currentPriority = priority
 		}
 
 		return {value, bestClasses}

@@ -19,7 +19,7 @@ class BalanceOptionsClassLevelRule extends Rule {
 	override getEntryValue(entry: Entry, rule: InputRule): number {
 		let sum = 0
 
-		for (const classKey of Object.keys(entry.classes)) {
+		for (const classKey of Object.keys(entry.classes())) {
 			sum += Math.abs(this.getDifference(this.getAverageLevelForClass(entry, rule.option(), classKey)))
 		}
 
@@ -38,13 +38,15 @@ class BalanceOptionsClassLevelRule extends Rule {
 		const studentDiff = this.getDifference(student.levels()[rule.option()])
 
 		// Récupération de la différence entre le niveau moyen de la classe et la moyenne requise.
-		const classDiff = this.getDifference(this.getAverageLevelForClass(entry, rule.option(), studentClassIndex.toString()))
+		const classDiff = this.getDifference(
+			this.getAverageLevelForClass(entry, rule.option(), studentClassIndex.toString())
+		)
 
 		// On retourne la différence avec le niveau de la classe, ainsi que les classes dans lesquelles il n'améliorerait pas le niveau.
 		return {
 			value:
 				(studentDiff < 0 && classDiff < 0) || (studentDiff > 0 && classDiff > 0) ? Math.floor(studentDiff) : 0,
-			worseClasses: Object.entries(entry.classes)
+			worseClasses: Object.entries(entry.classes())
 				.filter(([classKey]) => {
 					// On conserve cette classe si l'élève n'améliore pas le niveau.
 					const studentDiff = this.getDifference(student.levels()[rule.option()])

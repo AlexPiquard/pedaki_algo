@@ -10,7 +10,7 @@
       "options": "allemand"
     },
     {
-      "rule": "balance_option_count",
+      "rule": "balance_count",
       "priority": 1,
       "options": "allemand"
     }
