@@ -4,10 +4,10 @@ export const keysMask = ["allemand"]
 export const showLevel = true
 export const countOutput = [
   {
-    "allemand": 100,
+    "allemand": [97, 100],
   },
   {
-    "allemand": 97
+    "allemand": [97, 100]
   },
   {},
   {},

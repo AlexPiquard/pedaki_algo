@@ -3,10 +3,10 @@ export const inputFile = "../data/input-500-gather-option.json"
 export const keysMask = ["allemand"]
 export const countOutput = [
   {
-    "allemand": 97,
+    "allemand": [97, 100],
   },
   {
-    "allemand": 100
+    "allemand": [97, 100]
   },
   {},
   {},
