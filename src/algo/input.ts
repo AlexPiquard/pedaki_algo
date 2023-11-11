@@ -1,5 +1,27 @@
-import {DEFAULT_PRIORITY} from "./genetic.ts"
 import {Student} from "./student.ts"
+import {Rule} from "./rules/rule.ts"
+import {GatherOptionRule} from "./rules/gather_option.ts"
+import {MaximizeClassSizeRule} from "./rules/maximize_class_size.ts"
+import {MaximizeClassesRule} from "./rules/maximize_classes.ts"
+import {BalanceCountRule} from "./rules/balance_count.ts"
+import {BalanceOptionsClassLevelRule} from "./rules/balance_option_class_level.ts"
+
+export interface RawInput {
+	constraints: {
+		class_size_limit: number
+		class_amount_limit: number
+	}
+	rules: RawRule[]
+}
+
+export interface RawRule {
+	rule: LevelRuleType
+	priority?: number
+	// Éventuelles options relatives à la règle.
+	options?: string[] | string
+	// Éventuels élèves relatifs à la règle.
+	students?: string[] | string
+}
 
 export type LevelRuleType =
 	// Maximiser le nombre d'élèves dans chaque classe, en respectant les contraintes.
@@ -27,92 +49,23 @@ export type LevelRuleType =
 	// Respecter les relations négatives entre élèves qui ne veulent pas être dans la même classe.
 	| "negative_relationships"
 
-// Attributs requis pour chaque règle.
-const RuleRequirements: {[rule: string]: string[]} = {
-	maximize_class_size: [],
-	maximize_classes: [],
-	balance_count: [],
-	gather_option: ["options"],
-	conflicting_options: ["options"],
-	balance_options_class_count: ["options"],
-	balance_option_class_level: ["options"],
-	positive_relationships: ["students"],
-	negative_relationships: ["students"],
-}
-
-export interface RawInput {
-	constraints: {
-		class_size_limit: number
-		class_amount_limit: number
-	}
-	rules: RawRule[]
-}
-
-export interface RawRule {
-	rule: LevelRuleType
-	priority?: number
-	// Éventuelles options relatives à la règle.
-	options?: string[] | string
-	// Éventuels élèves relatifs à la règle.
-	students?: string[] | string
-}
-
-export class InputRule {
-	private readonly rule: RawRule
-
-	constructor(rule: RawRule) {
-		this.rule = rule
-
-		for (const requirement of RuleRequirements[rule.rule]) {
-			if (!(requirement in rule))
-				throw new Error(`No required '${requirement}' attribute in rule '${this.rule.rule}'`)
-		}
-	}
-
-	/**
-	 * Obtenir la priorité définie pour cette règle.
-	 */
-	public priority() {
-		return this.rule.priority ?? DEFAULT_PRIORITY
-	}
-
-	/**
-	 * Obtenir la clé identifiant la règle.
-	 */
-	public key() {
-		return this.rule.rule
-	}
-
-	public options(): string[] {
-		if (Array.isArray(this.rule.options)) return this.rule.options
-		return [this.rule.options] as string[]
-	}
-
-	public option(): string {
-		if (Array.isArray(this.rule.options)) return this.rule.options[0]
-		return this.rule.options as string
-	}
-
-	public students(): string[] {
-		if (Array.isArray(this.rule.students)) return this.rule.students
-		return [this.rule.students] as string[]
-	}
-
-	public student(): string {
-		if (Array.isArray(this.rule.students)) return this.rule.students[0]
-		return this.rule.students as string
-	}
+const RuleOrder: {[ruleKey: string]: {rule: {new (rawRule: RawRule): Rule}; priority: number}} = {
+	gather_option: {rule: GatherOptionRule, priority: 2},
+	maximize_class_size: {rule: MaximizeClassSizeRule, priority: 2},
+	maximize_classes: {rule: MaximizeClassesRule, priority: 2},
+	balance_count: {rule: BalanceCountRule, priority: 1},
+	balance_option_class_level: {rule: BalanceOptionsClassLevelRule, priority: 1},
 }
 
 export class Input {
 	private readonly input: RawInput
 
-	// Liste complète des instances de règles.
-	private _rules: InputRule[] = []
+	// Liste complète des instances de règles, dans l'ordre défini par les priorités de l'utilisateur et les nôtres.
+	private _rules: Rule[] = []
 	// Liste complète des options existantes.
 	private _options: string[] = []
 	// Liste des règles, regroupées par clé.
-	private _rulesByKey: {[ruleKey: string]: InputRule[]} = {}
+	private _rulesByKey: {[ruleKey: string]: Rule[]} = {}
 	// Nombre d'élèves qui ont chaque option.
 	private _optionCount: {[option: string]: number} = {}
 
@@ -162,13 +115,21 @@ export class Input {
 			}
 		}
 
-		for (const rule of Object.values(this.input.rules)) {
-			let inputRule
-			this._rules.push((inputRule = new InputRule(rule)))
+		for (const rawRule of Object.values(this.input.rules)) {
+			let rule
+			this._rules.push((rule = new RuleOrder[rawRule.rule].rule(rawRule)))
 
-			if (!(rule.rule in this._rulesByKey)) this._rulesByKey[rule.rule] = []
-			this._rulesByKey[rule.rule].push(inputRule)
+			if (!(rawRule.rule in this._rulesByKey)) this._rulesByKey[rawRule.rule] = []
+			this._rulesByKey[rawRule.rule].push(rule)
 		}
+
+		this._rules.sort((r1, r2) => {
+			// On vérifie d'abord si notre priorité peut les départager.
+			if (RuleOrder[r1.key()].priority != RuleOrder[r2.key()].priority)
+				return RuleOrder[r2.key()].priority - RuleOrder[r1.key()].priority
+			// Si notre priorité est la même pour les deux, on les départage avec la priorité de l'utilisateur.
+			return r2.priority() - r1.priority()
+		})
 	}
 
 	public classSize(): number {

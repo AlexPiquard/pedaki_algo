@@ -9,6 +9,11 @@ export default class Class {
 		this.students = students
 	}
 
+	public shuffleStudents() {
+		// TODO trouver mieux que ça ?
+		this.students.sort(() => 0.5 - Math.random())
+	}
+
 	public getStudents(): Student[] {
 		return this.students
 	}
@@ -33,7 +38,6 @@ export default class Class {
 	}
 
 	toCount(...keysMask: string[]) {
-		// TODO cache
 		const countLevel: {[level: string]: number} = {}
 		for (const student of this.students) {
 			for (const option of Object.keys(student.levels())) {
@@ -46,8 +50,6 @@ export default class Class {
 	}
 
 	toLevel(...keysMask: string[]) {
-		// TODO à utiliser
-		// TODO cache
 		const countLevel = this.toCount(...keysMask)
 		const sumLevel: {[option: string]: number} = {}
 		for (const student of this.students) {

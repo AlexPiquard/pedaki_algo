@@ -1,11 +1,15 @@
 import Class, {ClassWithIndex} from "./class.ts"
-import Genetic, {MAX_STUDENTS_TO_MOVE, RuleOrder} from "./genetic.ts"
+import Algo from "./algo.ts"
 import {Student} from "./student.ts"
+import {Rule} from "./rules/rule.ts"
 
+/**
+ * Instance de solution possible au problème.
+ * Représente donc une liste de classes.
+ */
 export default class Entry {
-	private _genetic: Genetic
+	private _algo: Algo
 	private _classes: Class[]
-	private value?: number
 
 	// Nombre d'élèves ayant chaque option dans chaque classe.
 	private optionsPerClass: {[option: string]: {[classKey: string]: number}} = {}
@@ -13,8 +17,8 @@ export default class Entry {
 	// Somme des niveaux pour chaque option dans chaque classe.
 	private levelSumsPerClass: {[option: string]: {[classKey: string]: number}} = {}
 
-	constructor(genetic: Genetic, classes: Class[]) {
-		this._genetic = genetic
+	constructor(algo: Algo, classes: Class[]) {
+		this._algo = algo
 		this._classes = classes
 	}
 
@@ -22,8 +26,8 @@ export default class Entry {
 		return this._classes
 	}
 
-	public genetic() {
-		return this._genetic
+	public algo() {
+		return this._algo
 	}
 
 	/**
@@ -53,7 +57,7 @@ export default class Entry {
 	}
 
 	public clone() {
-		const entry = new Entry(this.genetic(), [...this.classes().map(c => new Class([...c.getStudents()]))])
+		const entry = new Entry(this.algo(), [...this.classes().map(c => new Class([...c.getStudents()]))])
 
 		// Cloner les données d'analyse.
 		for (const [option, value] of Object.entries(this.optionsPerClass)) {
@@ -131,19 +135,19 @@ export default class Entry {
 		}
 	}
 
-	public static default(genetic: Genetic): Entry {
-		const length = Math.ceil(genetic.students().length / genetic.input().classSize())
+	public static default(algo: Algo): Entry {
+		const length = Math.ceil(algo.students().length / algo.input().classSize())
 		const entry = new Entry(
-			genetic,
+			algo,
 			Array.from(
 				{length},
 				(_v, k) =>
 					new Class(
-						genetic
+						algo
 							.students()
 							.slice(
-								k * genetic.input().classSize(),
-								k * genetic.input().classSize() + genetic.input().classSize()
+								k * algo.input().classSize(),
+								k * algo.input().classSize() + algo.input().classSize()
 							)
 					)
 			)
@@ -154,8 +158,9 @@ export default class Entry {
 
 	/**
 	 * Faire un changement aléatoire dans la configuration actuelle et retourner une nouvelle disposition.
+	 * Prend en compte une règle d'objectif qui va tenter d'être respectée.
 	 */
-	public randomChange(): Entry {
+	public randomChange(rule: Rule): Entry {
 		// Cloner la configuration actuelle pour en retourner une nouvelle différente.
 		const entry = this.clone()
 		// Obtenir la liste de tous les élèves.
@@ -163,25 +168,47 @@ export default class Entry {
 			.classes()
 			.map(c => c.getStudents())
 			.flat()
-		// Déterminer aléatoirement un nombre maximum de déplacements d'élèves pour ce changement.
-		const moves = Math.floor(Math.random() * MAX_STUDENTS_TO_MOVE) + 1
 
-		// Établir la liste des élèves les moins bien placés et n'en garder qu'un certain nombre.
-		// On obtient en même temps la liste des destinations idéales pour chaque élève.
+		// Obtenir la liste des élèves qui pourraient être mieux placés.
+		// On obtient en même temps la liste des pires destinations pour l'élève.
 		const worseStudents = allStudents
-			.map(s => ({student: s, ...s.value(entry)}))
+			.map(s => ({student: s, ...rule.getStudentValue(entry, s)}))
 			.filter(({value}) => value > 0)
-			.sort((a, b) => b.value - a.value)
-			.slice(0, moves)
+			.map(({student, worseClasses, value}) => {
+				// On ajoute la classe actuelle de l'élève dans les classes ignorées.
+				if (!worseClasses.includes(entry.searchStudent(student)?.class!)) {
+					worseClasses.push(entry.searchStudent(student)?.class!)
+				}
+				return {student, worseClasses, value}
+			})
+			.sort((a, b) => b.value - a.value) // TODO tester l'utilité
 
-		for (const {student, bestClasses} of worseStudents) {
-			this.randomChangeMove(student, bestClasses, entry)
+		for (let {student, worseClasses} of worseStudents) {
+			// Ajouter des pires classes des règles précédentes.
+			// On ne peut pas le faire avant, pour pouvoir prendre en compte les éventuelles classes ajoutées/supprimées.
+			for (let r of entry.algo().input().rules()) {
+				if (r === rule) break
+				worseClasses.push(
+					...r.getStudentValue(entry, student).worseClasses.filter(c => !worseClasses.includes(c))
+				)
+			}
+
+			// On applique un changement relatif à cet élève et à ses classes idéales.
+			this.randomChangeMove(
+				student,
+				entry.classes().filter(c => !worseClasses.includes(c)),
+				entry,
+				rule
+			)
+
+			// Si le changement précédent a permis de respecter la règle, on s'arrête là.
+			if (rule.getEntryValue(entry) === 0) break
 		}
 
 		return entry
 	}
 
-	private randomChangeMove(student: Student, destinations: Class[], entry: Entry): Entry {
+	private randomChangeMove(student: Student, destinations: Class[], entry: Entry, rule: Rule): Entry {
 		// Obtenir la classe actuelle de l'élève qui sera déplacé.
 		const studentClass = entry.searchStudent(student) as {class: Class; index: number}
 
@@ -192,7 +219,7 @@ export default class Entry {
 		let otherClass = !!destinations.length && destinations[Math.floor(Math.random() * destinations.length)]
 		if (!otherClass) {
 			// Si on a atteint le nombre maximum de classes, on ne fait rien.
-			if (entry.classes().length >= entry.genetic().input().classAmount()) return entry
+			if (entry.classes().length >= entry.algo().input().classAmount()) return entry
 			// Aucune classe idéale n'existe pour cet élève, donc on en crée une nouvelle.
 			otherClass = new Class([])
 			entry.classes().push(otherClass)
@@ -202,11 +229,12 @@ export default class Entry {
 		entry.moveStudent(student, studentClass, {class: otherClass, index: entry.classes().indexOf(otherClass)})
 
 		// On l'échange avec un élève de sa nouvelle classe si elle est pleine.
-		if (otherClass.getStudents().length > this.genetic().input().classSize()) {
-			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé.
+		if (otherClass.getStudents().length > this.algo().input().classSize()) {
+			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé (on randomise la liste pour éviter de choisir toujours le même élève).
+			otherClass.shuffleStudents()
 			const otherStudent = otherClass
 				.getStudents()
-				.map(s => ({student: s, ...s.value(entry)}))
+				.map(s => ({student: s, ...rule.getStudentValue(entry, s)}))
 				.reduce((acc, cur) => {
 					if (cur.value > acc.value) return cur
 					return acc
@@ -224,23 +252,6 @@ export default class Entry {
 		}
 
 		return entry
-	}
-
-	/**
-	 * Évaluer la qualité de cette configuration par rapport aux paramètres d'entrée de l'algorithme.
-	 */
-	public getValue() {
-		if (this.value) return this.value
-		this.value = 0
-
-		// On applique toutes les règles.
-		for (const inputRule of this.genetic().input().rules()) {
-			if (!(inputRule.key() in RuleOrder)) continue
-			const {rule, priority} = RuleOrder[inputRule.key()]
-			this.value += rule.getEntryValue(this, inputRule) * priority * inputRule.priority()
-		}
-
-		return this.value
 	}
 
 	toCount(...keysMask: string[]) {

@@ -1,9 +1,9 @@
 import {fixtures} from "./fixtures.ts"
-import Genetic from "../src/algo/genetic.ts"
+import Algo from "../src/algo/algo.ts"
 import * as path from "path"
 import * as url from "url"
 import * as assert from "assert"
-import {BalanceOptionsClassLevel} from "../src/algo/rules/balance_option_class_level.ts"
+import {BalanceOptionsClassLevelRule} from "../src/algo/rules/balance_option_class_level.ts"
 
 export type Module = {
 	studentsFile: string
@@ -13,12 +13,13 @@ export type Module = {
 	countOutput: {[option: string]: number}[]
 	levelOutput: {[option: string]: number}[]
 	showLevel?: boolean
+	description?: string
 }
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 describe("get classes from input", function () {
-	fixtures(__dirname, "genetic", async ({module}: {module: Module}) => {
+	fixtures(__dirname, "algo", async ({module}: {module: Module}) => {
 		let {studentsFile, inputFile, keysMask, countOutput, levelOutput, showLevel} = module
 
 		return Promise.all([
@@ -28,9 +29,10 @@ describe("get classes from input", function () {
 			const students = studentsFile.default
 			const input = inputFile.default
 
-			const algo = new Genetic(students, input)
+			const algo = new Algo(students, input)
 			const {entry, duration} = algo.solve()
-			console.log(`value: ${entry.getValue()}, duration: ${duration}`)
+			console.log(module.description)
+			console.log(`duration: ${duration}`)
 			console.log(entry.toString(showLevel, ...keysMask))
 
 			const resultCount = entry.toCount(...keysMask).sort()
@@ -95,7 +97,7 @@ const isClassValid = (c: Record<string, number>, model: Record<string, any>): bo
 const toLevelModel = (model: Record<string, number>): Record<string, number[]> => {
 	const newModel: Record<string, number[]> = {}
 	for (let [attribute, value] of Object.entries(model)) {
-		newModel[attribute] = [value - BalanceOptionsClassLevel.ACCURACY, value + BalanceOptionsClassLevel.ACCURACY]
+		newModel[attribute] = [value - BalanceOptionsClassLevelRule.ACCURACY, value + BalanceOptionsClassLevelRule.ACCURACY]
 	}
 	return newModel
 }
