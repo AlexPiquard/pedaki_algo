@@ -157,7 +157,7 @@ export default class Entry {
 	}
 
 	/**
-	 * Faire un changement aléatoire dans la configuration actuelle et retourner une nouvelle disposition.
+	 * Déplacer les élèves mal placés la configuration actuelle et retourner une nouvelle disposition.
 	 * Prend en compte une règle d'objectif qui va tenter d'être respectée.
 	 */
 	public randomChange(rule: Rule): Entry {
@@ -169,23 +169,20 @@ export default class Entry {
 			.map(c => c.getStudents())
 			.flat()
 
-		// Obtenir la liste des élèves qui pourraient être mieux placés.
-		// On obtient en même temps la liste des pires destinations pour l'élève.
-		const worseStudents = allStudents
-			.map(s => ({student: s, ...rule.getStudentValue(entry, s)}))
-			.filter(({value}) => value > 0)
-			.map(({student, worseClasses, value}) => {
-				// On ajoute la classe actuelle de l'élève dans les classes ignorées.
-				if (!worseClasses.includes(entry.searchStudent(student)?.class!)) {
-					worseClasses.push(entry.searchStudent(student)?.class!)
-				}
-				return {student, worseClasses, value}
-			})
-			.sort((a, b) => b.value - a.value) // TODO tester l'utilité
+		// On déplace tous les élèves mal placés dans des classes suggérées.
+		for (let student of allStudents) {
+			// Récupération de la valeur de placement de l'élève, relative à la règle courante, ainsi que la liste des classes à éviter.
+			const {value, worseClasses} = rule.getStudentValue(entry, student)
 
-		for (let {student, worseClasses} of worseStudents) {
+			// Si l'élève est déjà bien placé, on ne fait rien de plus.
+			if (value <= 0) continue
+
+			// On ajoute la classe actuelle de l'élève dans les classes ignorées.
+			if (!worseClasses.includes(entry.searchStudent(student)?.class!)) {
+				worseClasses.push(entry.searchStudent(student)?.class!)
+			}
+
 			// Ajouter des pires classes des règles précédentes.
-			// On ne peut pas le faire avant, pour pouvoir prendre en compte les éventuelles classes ajoutées/supprimées.
 			for (let r of entry.algo().input().rules()) {
 				if (r === rule) break
 				worseClasses.push(
