@@ -1,7 +1,6 @@
 import {Rule} from "./rule.ts"
 import Entry from "../entry.ts"
 import Class from "../class.ts"
-import {MAX_LEVEL, MIN_LEVEL} from "../algo.ts"
 import {Student} from "../student.ts"
 import {RawRule} from "../input.ts"
 
@@ -24,7 +23,7 @@ export class BalanceOptionsClassLevelRule extends Rule {
 		let sum = 0
 
 		for (const classKey of Object.keys(entry.classes())) {
-			sum += Math.abs(this.getDifference(this.getAverageLevelForClass(entry, this.option(), classKey)))
+			sum += Math.abs(this.getDifference(entry, this.getAverageLevelForClass(entry, this.option(), classKey)))
 		}
 
 		return sum
@@ -39,10 +38,11 @@ export class BalanceOptionsClassLevelRule extends Rule {
 		const studentClassIndex = entry.searchStudent(student)?.index!
 
 		// Récupération de la différence entre le niveau de l'élève et la moyenne requise.
-		const studentDiff = this.getDifference(student.levels()[this.option()])
+		const studentDiff = this.getDifference(entry, student.levels()[this.option()])
 
 		// Récupération de la différence entre le niveau moyen de la classe et la moyenne requise.
 		const classDiff = this.getDifference(
+			entry,
 			this.getAverageLevelForClass(entry, this.option(), studentClassIndex.toString())
 		)
 
@@ -53,8 +53,11 @@ export class BalanceOptionsClassLevelRule extends Rule {
 			worseClasses: Object.entries(entry.classes())
 				.filter(([classKey]) => {
 					// On conserve cette classe si l'élève n'améliore pas le niveau.
-					const studentDiff = this.getDifference(student.levels()[this.option()])
-					const classDiff = this.getDifference(this.getAverageLevelForClass(entry, this.option(), classKey))
+					const studentDiff = this.getDifference(entry, student.levels()[this.option()])
+					const classDiff = this.getDifference(
+						entry,
+						this.getAverageLevelForClass(entry, this.option(), classKey)
+					)
 					return (studentDiff < 0 && classDiff < 0) || (studentDiff > 0 && classDiff > 0)
 				})
 				.map(([, c]) => c),
@@ -72,8 +75,8 @@ export class BalanceOptionsClassLevelRule extends Rule {
 	 * Obtenir la différence entre l'objectif de niveau moyen et un quelconque niveau.
 	 * Prend en compte un degré de précision accepté.
 	 */
-	public getDifference = (value: number) => {
-		const avgLevel = (MIN_LEVEL + MAX_LEVEL) / 2
+	public getDifference = (entry: Entry, value: number) => {
+		const avgLevel = (entry.algo().input().minLevel() + entry.algo().input().maxLevel()) / 2
 		if (value > avgLevel + BalanceOptionsClassLevelRule.ACCURACY)
 			return value - (avgLevel + BalanceOptionsClassLevelRule.ACCURACY)
 		else if (value < avgLevel - BalanceOptionsClassLevelRule.ACCURACY)

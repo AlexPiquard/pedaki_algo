@@ -68,6 +68,10 @@ export class Input {
 	private _rulesByKey: {[ruleKey: string]: Rule[]} = {}
 	// Nombre d'élèves qui ont chaque option.
 	private _optionCount: {[option: string]: number} = {}
+	// Niveau minimal des d'options.
+	private _minLevel: number = Number.MAX_VALUE
+	// Niveau maximal des options.
+	private _maxLevel: number = Number.MIN_VALUE
 
 	constructor(input: RawInput, students: Student[]) {
 		this.input = input
@@ -104,7 +108,10 @@ export class Input {
 	 */
 	private calculate(students: Student[]) {
 		for (const s of students) {
-			for (const option of Object.keys(s.levels())) {
+			for (const [option, level] of Object.entries(s.levels())) {
+				if (level > this._maxLevel) this._maxLevel = level
+				if (level < this._minLevel) this._minLevel = level
+
 				if (!this._options.includes(option)) {
 					this._options.push(option)
 					this._optionCount[option] = 1
@@ -138,5 +145,13 @@ export class Input {
 
 	public classAmount(): number {
 		return this.input.constraints.class_amount_limit
+	}
+
+	public minLevel(): number {
+		return this._minLevel
+	}
+
+	public maxLevel(): number {
+		return this._maxLevel
 	}
 }
