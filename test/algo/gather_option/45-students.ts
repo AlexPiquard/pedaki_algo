@@ -1,16 +1,24 @@
 export const description = "Regrouper les options allemand, anglais et espagnol (45 élèves)"
 export const studentsFile = "../data/users-45.json"
-export const inputFile = "../data/input-45-gather-option.json"
+export const inputFile = "../data/input-45-gather-langages.json"
 export const keysMask = ["allemand", "anglais", "espagnol"]
-export const countOutput = [
+export const output = [
   {
-    "allemand": 10,
-    "anglais": 5
+    allemand: {
+      count: 10
+    },
+    anglais: {
+      count: 5
+    }
   },
   {
-    "espagnol": 15
+    espagnol: {
+      count: 15
+    }
   },
   {
-    "anglais": 15
+    anglais: {
+      count: 15
+    }
   }
 ]

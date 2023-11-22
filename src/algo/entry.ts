@@ -2,20 +2,15 @@ import Class, {ClassWithIndex} from "./class.ts"
 import Algo from "./algo.ts"
 import {Student} from "./student.ts"
 import {Rule} from "./rules/rule.ts"
+import {Attribute} from "./attribute.ts";
 
 /**
  * Instance de solution possible au problème.
  * Représente donc une liste de classes.
  */
 export default class Entry {
-	private _algo: Algo
-	private _classes: Class[]
-
-	// Nombre d'élèves ayant chaque option dans chaque classe.
-	private optionsPerClass: {[option: string]: {[classKey: string]: number}} = {}
-
-	// Somme des niveaux pour chaque option dans chaque classe.
-	private levelSumsPerClass: {[option: string]: {[classKey: string]: number}} = {}
+	private readonly _algo: Algo
+	private readonly _classes: Class[]
 
 	constructor(algo: Algo, classes: Class[]) {
 		this._algo = algo
@@ -30,52 +25,19 @@ export default class Entry {
 		return this._algo
 	}
 
-	/**
-	 * Calculer les différentes données d'analyse.
-	 * N'est calculé entièrement qu'une seule fois.
-	 */
-	private calculate() {
-		for (const [i, c] of Object.entries(this.classes())) {
-			for (const s of c.getStudents()) {
-				for (const [option, level] of Object.entries(s.levels())) {
-					if (!(option in this.optionsPerClass)) {
-						this.optionsPerClass[option] = {}
-						this.levelSumsPerClass[option] = {}
-					}
-
-					if (!(i in this.optionsPerClass[option])) {
-						this.optionsPerClass[option][i] = 1
-						this.levelSumsPerClass[option][i] = level
-						continue
-					}
-
-					this.optionsPerClass[option][i]++
-					this.levelSumsPerClass[option][i] += level
-				}
-			}
-		}
-	}
-
 	public clone() {
-		const entry = new Entry(this.algo(), [...this.classes().map(c => new Class([...c.getStudents()]))])
-
-		// Cloner les données d'analyse.
-		for (const [option, value] of Object.entries(this.optionsPerClass)) {
-			entry.optionsPerClass[option] = Object.assign({}, value)
-		}
-		for (const [option, value] of Object.entries(this.levelSumsPerClass)) {
-			entry.levelSumsPerClass[option] = Object.assign({}, value)
-		}
-
-		return entry
+		return new Entry(this.algo(), [...this.classes().map(c => new Class([...c.getStudents()]))])
 	}
 
-	public getOptionCountOfClass(option: string) {
-		return this.optionsPerClass[option]
+	public class(index: number | string): Class | null {
+		const intIndex: number = typeof index === "string" ? parseInt(index) : index
+
+		if (!(intIndex in this._classes)) return null
+		return this._classes[intIndex]
 	}
 
-	public getLevelSumOfClass(option: string) {
-		return this.levelSumsPerClass[option]
+	public getClassesWithAttribute(attribute: Attribute) {
+		return this.classes().filter(c => c.count(attribute))
 	}
 
 	public searchStudent(student: Student): ClassWithIndex | null {
@@ -90,24 +52,9 @@ export default class Entry {
 
 	/**
 	 * Suppression d'une classe dans cette configuration.
-	 * Entraine la modification des données d'analyse puisque les identifiants des classes vont changer.
 	 */
 	public deleteClass(classIndex: number) {
 		this.classes().splice(classIndex, 1)
-
-		// Les identifiants de classe ont changé.
-		const moveClassIndexes = (object: {[p: string]: {[p: string]: number}}) => {
-			for (const [option, oldObject] of Object.entries(object)) {
-				const newObject: {[option: string]: number} = {}
-				for (const [classKey, value] of Object.entries(oldObject)) {
-					newObject[parseInt(classKey) > classIndex ? parseInt(classKey) - 1 : parseInt(classKey)] = value
-				}
-				object[option] = newObject
-			}
-		}
-
-		moveClassIndexes(this.optionsPerClass)
-		moveClassIndexes(this.levelSumsPerClass)
 	}
 
 	/**
@@ -117,26 +64,10 @@ export default class Entry {
 	public moveStudent(student: Student, from: ClassWithIndex, to: ClassWithIndex) {
 		from.class.removeStudent(student)
 		to.class.addStudent(student)
-
-		for (const [option, level] of Object.entries(student.levels())) {
-			this.optionsPerClass[option][from.index]--
-			this.levelSumsPerClass[option][from.index] -= level
-
-			if (this.optionsPerClass[option][from.index] === 0) delete this.optionsPerClass[option][from.index]
-			if (this.levelSumsPerClass[option][from.index] === 0) delete this.levelSumsPerClass[option][from.index]
-
-			if (!(to.index in this.optionsPerClass[option])) {
-				this.optionsPerClass[option][to.index] = 1
-				this.levelSumsPerClass[option][to.index] = level
-			} else {
-				this.optionsPerClass[option][to.index]++
-				this.levelSumsPerClass[option][to.index] += level
-			}
-		}
 	}
 
 	public static default(algo: Algo): Entry {
-		const length = Math.ceil(algo.students().length / algo.input().classSize())
+		const length = Math.ceil(algo.input().students().length / algo.input().classSize())
 		const entry = new Entry(
 			algo,
 			Array.from(
@@ -144,6 +75,7 @@ export default class Entry {
 				(_v, k) =>
 					new Class(
 						algo
+							.input()
 							.students()
 							.slice(
 								k * algo.input().classSize(),
@@ -152,7 +84,6 @@ export default class Entry {
 					)
 			)
 		)
-		entry.calculate()
 		return entry
 	}
 
@@ -207,7 +138,7 @@ export default class Entry {
 
 	private randomChangeMove(student: Student, destinations: Class[], entry: Entry, rule: Rule): Entry {
 		// Obtenir la classe actuelle de l'élève qui sera déplacé.
-		const studentClass = entry.searchStudent(student) as {class: Class; index: number}
+		const studentClass = entry.searchStudent(student)!
 
 		// On supprime les éventuelles classes supprimées de la liste des destinations.
 		destinations = destinations.filter(c => entry.classes().indexOf(c) >= 0)
@@ -229,17 +160,13 @@ export default class Entry {
 		if (otherClass.getStudents().length > this.algo().input().classSize()) {
 			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé (on randomise la liste pour éviter de choisir toujours le même élève).
 			otherClass.shuffleStudents()
-			const otherStudent = otherClass
-				.getStudents()
-				.map(s => ({student: s, ...rule.getStudentValue(entry, s)}))
-				.reduce((acc, cur) => {
-					if (cur.value > acc.value) return cur
-					return acc
-				}).student
+
+			// Déterminer l'élève de la classe de destination avec qui échanger.
+			const otherStudent: Student | null = studentClass.class.findBestStudentFor(entry, otherClass.getStudents(), rule)
 
 			// Déplacer cet élève dans la classe initiale du premier élève (échanger).
 			entry.moveStudent(
-				otherStudent,
+				otherStudent!,
 				{class: otherClass, index: entry.classes().indexOf(otherClass)},
 				studentClass
 			)
@@ -251,12 +178,24 @@ export default class Entry {
 		return entry
 	}
 
-	toCount(...keysMask: string[]) {
-		return this.classes().map(c => c.toCount(...keysMask))
-	}
-
-	toLevel(...keysMask: string[]) {
-		return this.classes().map(c => c.toLevel(...keysMask))
+	/**
+	 * Obtenir un échantillon d'élèves qui représente l'ensemble des cas.
+	 * Cette fonction n'est pas déterministe.
+	 */
+	public getStudentSample(students: Student[]): Student[] {
+		const list: Student[] = []
+		for (let attribute of this.algo().input().attributes()) {
+			const relatedStudents = attribute.students().filter(s => !list.includes(s) && students.includes(s))
+			if (!relatedStudents.length) continue
+			list.push(relatedStudents[Math.floor(Math.random()*relatedStudents.length)])
+		}
+		const otherStudents = students.filter(s => !s.attributes().length && !list.includes(s))
+		while (list.length < this.algo().input().attributes().length + 1 && otherStudents.length) {
+			const choice = Math.floor(Math.random()*otherStudents.length)
+			list.push(otherStudents[choice])
+			otherStudents.splice(choice, 1)
+		}
+		return list
 	}
 
 	toString(showLevel?: boolean, ...keysMask: string[]) {

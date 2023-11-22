@@ -1,32 +1,32 @@
 import Entry from "../entry.ts"
 import Class from "../class.ts"
-import {RawRule} from "../input.ts"
+import {Input, RawRule} from "../input.ts"
 import {Student} from "../student.ts"
 import {DEFAULT_PRIORITY} from "../algo.ts"
-
-// Attributs requis pour chaque règle.
-const RuleRequirements: {[rule: string]: string[]} = {
-	maximize_class_size: [],
-	maximize_classes: [],
-	balance_count: [],
-	gather_option: ["options"],
-	conflicting_options: ["options"],
-	balance_options_class_count: ["options"],
-	balance_option_class_level: ["options"],
-	positive_relationships: ["students"],
-	negative_relationships: ["students"],
-}
+import {Attribute} from "../attribute.ts";
 
 export abstract class Rule {
 	private readonly rule: RawRule
+	private readonly _attributes: Attribute[]
 
-	protected constructor(rule: RawRule) {
+	protected constructor(rule: RawRule, input: Input) {
 		this.rule = rule
+		this._attributes = rule.attributes?.map(a => new Attribute(a, input)) ?? []
+	}
 
-		for (const requirement of RuleRequirements[rule.rule]) {
-			if (!(requirement in rule))
-				throw new Error(`No required '${requirement}' attribute in rule '${this.rule.rule}'`)
-		}
+	/**
+	 * Obtenir la liste des attributs associés à la règle.
+	 */
+	public attributes(): Attribute[] {
+		return this._attributes
+	}
+
+	/**
+	 * Obtenir l'unique attribut associé à la règle.
+	 */
+	public attribute(): Attribute | undefined {
+		if (!this._attributes.length) return undefined
+		return this._attributes[0]
 	}
 
 	/**
@@ -41,26 +41,6 @@ export abstract class Rule {
 	 */
 	public key() {
 		return this.rule.rule
-	}
-
-	public options(): string[] {
-		if (Array.isArray(this.rule.options)) return this.rule.options
-		return [this.rule.options] as string[]
-	}
-
-	public option(): string {
-		if (Array.isArray(this.rule.options)) return this.rule.options[0]
-		return this.rule.options as string
-	}
-
-	public students(): string[] {
-		if (Array.isArray(this.rule.students)) return this.rule.students
-		return [this.rule.students] as string[]
-	}
-
-	public student(): string {
-		if (Array.isArray(this.rule.students)) return this.rule.students[0]
-		return this.rule.students as string
 	}
 
 	/**

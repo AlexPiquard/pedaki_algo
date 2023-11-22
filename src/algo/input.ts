@@ -1,10 +1,10 @@
-import {Student} from "./student.ts"
+import {Gender, RawStudent, Student} from "./student.ts"
 import {Rule} from "./rules/rule.ts"
-import {GatherOptionRule} from "./rules/gather_option.ts"
+import {GatherAttributeRule} from "./rules/gather_attribute.ts"
 import {MaximizeClassSizeRule} from "./rules/maximize_class_size.ts"
 import {MaximizeClassesRule} from "./rules/maximize_classes.ts"
 import {BalanceCountRule} from "./rules/balance_count.ts"
-import {BalanceOptionsClassLevelRule} from "./rules/balance_option_class_level.ts"
+import {Attribute} from "./attribute.ts";
 
 export interface RawInput {
 	constraints: {
@@ -14,13 +14,17 @@ export interface RawInput {
 	rules: RawRule[]
 }
 
-export interface RawRule {
+export type RawRule = {
 	rule: LevelRuleType
 	priority?: number
-	// Éventuelles options relatives à la règle.
-	options?: string[] | string
-	// Éventuels élèves relatifs à la règle.
-	students?: string[] | string
+	attributes: RawAttribute[]
+}
+
+export type RawAttribute = {
+	options?: string | string[]
+	levels?: number | number[]
+	genders?: Gender | Gender[]
+	extras?: string | string[]
 }
 
 export type LevelRuleType =
@@ -31,58 +35,45 @@ export type LevelRuleType =
 	// Règle inverse de "maximize_class_size", ne peut pas être utilisé en même temps.
 	| "maximize_classes"
 	// Répartir équitablement le nombre d'élèves dans chaque classe.
-	// Si une option est associée à la règle, alors seulement cette option sera prise en compte.
+	// Si un attribut est associée à la règle, alors seulement cet attribut sera pris en compte.
 	// C'est une règle complémentaire qui ne peut pas exister seule.
 	| "balance_count"
-	// Regrouper une certaine option dans un minimum de classes.
-	| "gather_option"
-	// Interdire plusieurs options d'être dans une classe commune.
-	| "conflicting_options"
-	// Équilibrer le dénombrement de plusieurs options dans un maximum de classes.
-	| "balance_options_class_count"
-	// Équilibrer le niveau d'une certaine option dans chaque classe qui possède l'option.
-	// C'est une règle complémentaire qui ne peut pas exister seule.
-	| "balance_option_class_level"
+	// Regrouper un certain attribut dans un minimum de classes.
+	| "gather_attribute"
+	// Interdire plusieurs attributs d'être dans une classe commune.
+	| "separate_attributes"
+	// Équilibrer le dénombrement de plusieurs attributs dans un maximum de classes.
+	| "balance_class_count"
 	// Respecter les relations positives entre élèves qui veulent être dans la même classe.
 	// Respecte une certaine hiérarchie, par exemple lien familial ou simple ami.
 	| "positive_relationships"
 	// Respecter les relations négatives entre élèves qui ne veulent pas être dans la même classe.
 	| "negative_relationships"
 
-const RuleOrder: {[ruleKey: string]: {rule: {new (rawRule: RawRule): Rule}; priority: number}} = {
-	gather_option: {rule: GatherOptionRule, priority: 2},
+const RuleOrder: {[ruleKey: string]: {rule: {new (rawRule: RawRule, input: Input): Rule}; priority: number}} = {
+	gather_attribute: {rule: GatherAttributeRule, priority: 2},
 	maximize_class_size: {rule: MaximizeClassSizeRule, priority: 2},
 	maximize_classes: {rule: MaximizeClassesRule, priority: 2},
 	balance_count: {rule: BalanceCountRule, priority: 1},
-	balance_option_class_level: {rule: BalanceOptionsClassLevelRule, priority: 1},
 }
 
 export class Input {
 	private readonly input: RawInput
+	private _students: Student[] = []
 
+	// Liste de tous les attributs, permettant de leur associer un unique identifiant.
+	private _attributes: Attribute[] = []
 	// Liste complète des instances de règles, dans l'ordre défini par les priorités de l'utilisateur et les nôtres.
 	private _rules: Rule[] = []
-	// Liste complète des options existantes.
-	private _options: string[] = []
-	// Liste des règles, regroupées par clé.
-	private _rulesByKey: {[ruleKey: string]: Rule[]} = {}
-	// Nombre d'élèves qui ont chaque option.
-	private _optionCount: {[option: string]: number} = {}
 	// Niveau minimal des d'options.
 	private _minLevel: number = Number.MAX_VALUE
 	// Niveau maximal des options.
-	private _maxLevel: number = Number.MIN_VALUE
+	private _maxLevel: number = - Number.MAX_VALUE
 
-	constructor(input: RawInput, students: Student[]) {
+	constructor(input: RawInput, students: RawStudent[]) {
 		this.input = input
-		this.calculate(students)
-	}
 
-	/**
-	 * Obtenir la liste complète des options existantes.
-	 */
-	public options() {
-		return this._options
+		this.calculate(students)
 	}
 
 	/**
@@ -92,42 +83,38 @@ export class Input {
 		return this._rules
 	}
 
-	public rulesOfKey(key: string) {
-		return this._rulesByKey[key] ?? []
+	/**
+	 * Obtenir la liste des élèves.
+	 */
+	public students(): Student[] {
+		return this._students
 	}
 
-	/**
-	 * Obtenir le nombre d'élèves qui ont une certaine option.
-	 */
-	public optionCount(optionKey: string): number {
-		return optionKey in this._optionCount ? this._optionCount[optionKey] : 0
+	public attributes(): Attribute[] {
+		return this._attributes
+	}
+
+	public keyOfAttribute(attribute: Attribute): number {
+		return this._attributes.indexOf(attribute)
 	}
 
 	/**
 	 * Calculer les statistiques relatives aux données initiales, une seule fois.
 	 */
-	private calculate(students: Student[]) {
-		for (const s of students) {
-			for (const [option, level] of Object.entries(s.levels())) {
+	private calculate(rawStudents: RawStudent[]) {
+		for (const s of rawStudents) {
+			for (const level of Object.values(s.levels)) {
 				if (level > this._maxLevel) this._maxLevel = level
 				if (level < this._minLevel) this._minLevel = level
-
-				if (!this._options.includes(option)) {
-					this._options.push(option)
-					this._optionCount[option] = 1
-					continue
-				}
-
-				this._optionCount[option]++
 			}
 		}
 
-		for (const rawRule of Object.values(this.input.rules)) {
-			let rule
-			this._rules.push((rule = new RuleOrder[rawRule.rule].rule(rawRule)))
+		// On les instancie après parce qu'on a besoin des niveaux min et max.
+		this._students = rawStudents.map(student => new Student(student, this))
 
-			if (!(rawRule.rule in this._rulesByKey)) this._rulesByKey[rawRule.rule] = []
-			this._rulesByKey[rawRule.rule].push(rule)
+		for (const rawRule of Object.values(this.input.rules)) {
+			if (!(rawRule.rule in RuleOrder)) console.error(`Unknown rule ${rawRule.rule}`)
+			else this._rules.push(new RuleOrder[rawRule.rule].rule(rawRule, this))
 		}
 
 		this._rules.sort((r1, r2) => {
@@ -137,6 +124,8 @@ export class Input {
 			// Si notre priorité est la même pour les deux, on les départage avec la priorité de l'utilisateur.
 			return r2.priority() - r1.priority()
 		})
+
+		this._attributes = this.rules().map(r => r.attributes()).flat()
 	}
 
 	public classSize(): number {

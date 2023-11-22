@@ -2,15 +2,15 @@ import {Rule} from "./rule.ts"
 import Entry from "../entry.ts"
 import {Student} from "../student.ts"
 import Class from "../class.ts"
-import {RawRule} from "../input.ts"
+import {Input, RawRule} from "../input.ts"
 
 /**
  * Maximiser le nombre d'élèves dans chaque classe, en respectant les contraintes.
  * Règle inverse de "maximize_classes", ne peut pas être utilisé en même temps.
  */
 export class MaximizeClassSizeRule extends Rule {
-	constructor(rawRule: RawRule) {
-		super(rawRule)
+	constructor(rawRule: RawRule, input: Input) {
+		super(rawRule, input)
 	}
 
 	/**

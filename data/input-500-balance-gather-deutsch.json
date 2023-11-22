@@ -5,14 +5,22 @@
   },
   "rules": [
     {
-      "rule": "gather_option",
+      "rule": "gather_attribute",
       "priority": 1,
-      "options": "allemand"
+      "attributes": [
+        {
+          "options": "allemand"
+        }
+      ]
     },
     {
       "rule": "balance_count",
       "priority": 1,
-      "options": "allemand"
+      "attributes": [
+        {
+          "options": "allemand"
+        }
+      ]
     }
   ]
 }

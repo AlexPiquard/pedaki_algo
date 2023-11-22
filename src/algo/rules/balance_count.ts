@@ -2,16 +2,17 @@ import Entry from "../entry.ts"
 import {Rule} from "./rule.ts"
 import Class from "../class.ts"
 import {Student} from "../student.ts"
-import {RawRule} from "../input.ts"
+import {Input, RawRule} from "../input.ts"
+import {Attribute} from "../attribute.ts";
 
 /**
  * Répartir équitablement le nombre d'élèves dans chaque classe.
- * Si une option est associée à la règle, alors seulement cette option sera prise en compte.
+ * Si un attribut est associée à la règle, alors seulement cet attribut sera pris en compte.
  * C'est une règle complémentaire qui ne peut pas exister seule.
  */
 export class BalanceCountRule extends Rule {
-	constructor(rawRule: RawRule) {
-		super(rawRule)
+	constructor(rawRule: RawRule, input: Input) {
+		super(rawRule, input)
 	}
 
 	/**
@@ -19,10 +20,10 @@ export class BalanceCountRule extends Rule {
 	 * Définit le nombre d'élèves idéal par classe, puis incrémente la valeur pour chaque dénombrement différent.
 	 */
 	override getEntryValue(entry: Entry): number {
-		const countGoal = this.getCountPerClass(entry, this.option() ?? undefined)
+		const countGoal = this.getCountPerClass(entry, this.attribute())
 		let value = 0
 		for (const classKey of Object.keys(entry.classes())) {
-			const count = this.getRelatedStudentsOfClass(entry, parseInt(classKey))
+			const count = this.getRelatedStudentsOfClass(entry, classKey)
 
 			// Si personne n'est concerné dans cette classe, on ne fait rien.
 			if (!count) continue
@@ -35,43 +36,40 @@ export class BalanceCountRule extends Rule {
 
 	/**
 	 * @inheritDoc
-	 * Pénalisation de la valeur si l'élève possède une option déjà trop présente dans sa classe.
-	 * Dans ce cas, il ne doit pas être déplacé dans les classes qui ont déjà trop l'option.
-	 * Pénalisation de la valeur si l'élève ne possède une option pas assez présente dans une classe.
-	 * Dans ce cas, il ne doit pas être déplacé dans les classes qui n'ont pas assez l'option.
+	 * Pénalisation de la valeur si l'élève possède un attribut déjà trop présent dans sa classe.
+	 * Dans ce cas, il ne doit pas être déplacé dans les classes qui ont déjà trop l'attribut.
+	 * Pénalisation de la valeur si l'élève ne possède pas un attribut pas assez présent dans une classe.
+	 * Dans ce cas, il ne doit pas être déplacé dans les classes qui n'ont pas assez l'attribut.
 	 */
 	override getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]} {
 		// Récupération de l'objectif de nombre d'élèves concernés.
-		const countGoal = this.getCountPerClass(entry, this.option())
+		const countGoal = this.getCountPerClass(entry, this.attribute())
 
 		// On récupère la différence entre nombre d'élèves concernés dans sa classe et l'objectif.
 		const diff = this.getDifference(
 			this.getRelatedStudentsOfClass(entry, entry.searchStudent(student)!.index),
 			countGoal
 		)
-		const hasAndMore = diff > 0 && (!this.option() || this.option() in student.levels())
-		const hasNotAndLess =
-			diff < 0 &&
-			(!this.option() ||
-				(!(this.option() in student.levels()) &&
-					entry.getOptionCountOfClass(this.option())[entry.searchStudent(student)?.index!]))
+		const hasAndMore = diff > 0 && (!this.attribute() || student.hasAttribute(this.attribute()!))
 
+		// On n'attribue pas de mauvaise valeur à ceux qui ont un faible niveau dans une classe trop faible,
+		// parce qu'on n'est pas sûr qu'il sera échangé avec quelqu'un du même attribut, il y a trop de risques de tout casser.
 		return {
-			value: hasAndMore || hasNotAndLess ? Math.abs(diff) : 0,
+			value: hasAndMore? Math.abs(diff) : 0,
 			worseClasses: entry.classes().filter((_c, classKey) => {
 				const classDiff = this.getDifference(this.getRelatedStudentsOfClass(entry, classKey), countGoal)
-				return !this.option() || this.option() in student.levels() ? classDiff >= 0 : classDiff < 0
+				return !this.attribute() || student.hasAttribute(this.attribute()!) ? classDiff > 0 : classDiff < 0
 			}),
 		}
 	}
 
 	/**
 	 * Obtenir le nombre idéal d'élèves par classe.
-	 * Prend en compte une éventuelle option.
+	 * Prend en compte un éventuel attribut.
 	 */
-	public getCountPerClass = (entry: Entry, option?: string) => {
-		if (!option) return entry.algo().students().length / entry.classes().length
-		return entry.algo().input().optionCount(option) / Object.keys(entry.getOptionCountOfClass(option)).length
+	public getCountPerClass = (entry: Entry, attribute?: Attribute): number => {
+		if (!attribute) return entry.algo().input().students().length / entry.classes().length
+		return attribute.count() / entry.getClassesWithAttribute(attribute).length
 	}
 
 	/**
@@ -82,7 +80,7 @@ export class BalanceCountRule extends Rule {
 		// Si l'objectif est un nombre entier, on le compare directement
 		if (goal % 1 === 0) return value - goal
 		// Si l'objectif est décimal, on autorise les deux nombres entiers.
-		else if (value > Math.ceil(goal)) return value - Math.ceil(goal)
+		else if ( value > Math.ceil(goal)) return value - Math.ceil(goal)
 		else if (value < Math.floor(goal)) return value - Math.floor(goal)
 
 		return 0
@@ -90,10 +88,10 @@ export class BalanceCountRule extends Rule {
 
 	/**
 	 * Obtenir le nombre d'élèves concernés par la règle dans une classe.
-	 * C'est-à-dire tous les élèves, ou ceux possédant une éventuelle option définie.
+	 * C'est-à-dire tous les élèves, ou ceux possédant un éventuel attribut défini.
 	 */
-	private getRelatedStudentsOfClass = (entry: Entry, classKey: number) => {
-		if (!this.option()) return entry.classes()[classKey].getStudents().length
-		return entry.getOptionCountOfClass(this.option())?.[classKey] ?? 0
+	private getRelatedStudentsOfClass = (entry: Entry, classKey: number | string): number => {
+		if (!this.attribute()) return entry.class(classKey)!.getStudents().length
+		return entry.class(classKey)!.count(this.attribute()!)
 	}
 }
