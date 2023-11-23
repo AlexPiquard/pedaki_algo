@@ -97,6 +97,10 @@ export class Attribute {
 		return students.filter(s => this.correspond(s))
 	}
 
+	/**
+	 * Obtenir l'unique clé de cet attribut.
+	 * Il s'agit de l'indice dans la liste d'attributs de l'input.
+	 */
 	public key(): number {
 		if (this._key === null) this._key = this.input.keyOfAttribute(this)
 		return this._key!

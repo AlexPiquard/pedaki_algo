@@ -64,20 +64,32 @@ export default class Class {
 	 * Doit prendre en compte les précédentes règles et leur priorité.
 	 */
 	public findBestStudentFor(entry: Entry, students: Student[], toRule?: Rule): Student {
-		const sample = /*entry.getStudentSample(students)*/ students
+		// On récupère une liste réduite d'élèves, mais qui contient quand même l'ensemble des cas.
+		const sample = entry.getStudentSample(students)
 		const results: number[] = []
+
+		// On teste le nombre de règles respectés pour chaque élève, s'il est déplacé dans la classe.
 		for (const studentIndex in sample) {
 			const student = sample[studentIndex]
+
+			// On effectue le déplacement de l'élève dans cette classe.
 			const newEntry = entry.clone()
 			newEntry.moveStudent(student, newEntry.searchStudent(student)!, {class: newEntry.class(entry.classes().indexOf(this))!, index: entry.classes().indexOf(this)})
 			results[studentIndex] = 0
+
 			for (let rule of newEntry.algo().input().rules()) {
-				if (rule === toRule) break
+				// Si cette règle n'est pas respectée, on s'arrête là.
 				if (rule.getEntryValue(newEntry) != 0) break
+
+				// On incrémente le nombre de règles respectées avec cet élève.
 				results[studentIndex] = studentIndex in results ? results[studentIndex] + 1 : 1
+
+				// Si on a trouvé un élève dont le déplacement respecte l'ensemble des règles, on le retourne tout de suite.
+				if (rule === toRule) return student
 			}
 		}
 
+		// On cherche l'élève dont le déplacement a respecté le plus de règles.
 		let bestValue = - Number.MAX_VALUE
 		let bestStudent = null
 		for (const studentIndex in results) {

@@ -60,7 +60,11 @@ export class Student {
 		return Object.entries(this.student.extra).filter(([,bool]) => !!bool).map(([key]) => key)
 	}
 
+	/**
+	 * Obtenir la liste des attributs de règles qui correspondent à l'élève.
+	 */
 	public attributes(): Attribute[] {
+		// On ne définit qu'une seule fois la liste des attributs.
 		if (!this._attributes) {
 			this._attributes = []
 			for (const attribute of this.input.attributes()) {

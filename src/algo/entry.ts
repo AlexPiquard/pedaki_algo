@@ -180,22 +180,17 @@ export default class Entry {
 
 	/**
 	 * Obtenir un échantillon d'élèves qui représente l'ensemble des cas.
-	 * Cette fonction n'est pas déterministe.
 	 */
 	public getStudentSample(students: Student[]): Student[] {
-		const list: Student[] = []
-		for (let attribute of this.algo().input().attributes()) {
-			const relatedStudents = attribute.students().filter(s => !list.includes(s) && students.includes(s))
-			if (!relatedStudents.length) continue
-			list.push(relatedStudents[Math.floor(Math.random()*relatedStudents.length)])
-		}
-		const otherStudents = students.filter(s => !s.attributes().length && !list.includes(s))
-		while (list.length < this.algo().input().attributes().length + 1 && otherStudents.length) {
-			const choice = Math.floor(Math.random()*otherStudents.length)
-			list.push(otherStudents[choice])
-			otherStudents.splice(choice, 1)
-		}
-		return list
+		// On supprime tous les doublons d'élèves qui ont les mêmes attributs.
+		return students.reduce((acc, cur) => {
+			// Si la liste d'attributs de cet élève n'est pas encore représentée dans la liste, on ajoute l'élève.
+			if (!acc.find(s => 
+				s.attributes().length === cur.attributes().length && 
+				!s.attributes().find(a => !cur.attributes().includes(a))
+			)) acc.push(cur)
+			return acc
+		}, [] as Student[])
 	}
 
 	toString(showLevel?: boolean, ...keysMask: string[]) {

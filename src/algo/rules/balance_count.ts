@@ -37,9 +37,7 @@ export class BalanceCountRule extends Rule {
 	/**
 	 * @inheritDoc
 	 * Pénalisation de la valeur si l'élève possède un attribut déjà trop présent dans sa classe.
-	 * Dans ce cas, il ne doit pas être déplacé dans les classes qui ont déjà trop l'attribut.
-	 * Pénalisation de la valeur si l'élève ne possède pas un attribut pas assez présent dans une classe.
-	 * Dans ce cas, il ne doit pas être déplacé dans les classes qui n'ont pas assez l'attribut.
+	 * Il ne doit pas être déplacé dans les classes qui ont trop l'attribut si lui ne l'a pas, et inversement.
 	 */
 	override getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]} {
 		// Récupération de l'objectif de nombre d'élèves concernés.
