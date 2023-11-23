@@ -68,7 +68,7 @@ export default class Entry {
 
 	public static default(algo: Algo): Entry {
 		const length = Math.ceil(algo.input().students().length / algo.input().classSize())
-		const entry = new Entry(
+		return new Entry(
 			algo,
 			Array.from(
 				{length},
@@ -84,7 +84,6 @@ export default class Entry {
 					)
 			)
 		)
-		return entry
 	}
 
 	/**
@@ -185,9 +184,9 @@ export default class Entry {
 		// On supprime tous les doublons d'élèves qui ont les mêmes attributs.
 		return students.reduce((acc, cur) => {
 			// Si la liste d'attributs de cet élève n'est pas encore représentée dans la liste, on ajoute l'élève.
-			if (!acc.find(s => 
+			if (!acc.some(s =>
 				s.attributes().length === cur.attributes().length && 
-				!s.attributes().find(a => !cur.attributes().includes(a))
+				!s.attributes().some(a => !cur.attributes().includes(a))
 			)) acc.push(cur)
 			return acc
 		}, [] as Student[])

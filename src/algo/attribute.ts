@@ -71,20 +71,20 @@ export class Attribute {
 	 */
 	private correspond(student: Student): boolean {
 		// S'il n'a pas toutes les options de la liste, il n'est pas concerné.
-		if (this.options().find(o => !(o in student.levels()))) return false
+		if (this.options().some(o => !(o in student.levels()))) return false
 
 		// S'il n'a pas l'un des niveaux de la liste pour chaque option, il n'est pas concerné non plus.
 		if (
 			this.levels().length &&
-			this.options().find(o => this.levels().find(l => student.levels()[o] === l) === undefined)
+			this.options().some(o => !this.levels().some(l => student.levels()[o] === l))
 		)
 			return false
 
 		// S'il n'a pas le ou les genres de la liste, il n'est toujours pas concerné.
-		if (this.genders().find(g => !student.genders().includes(g))) return false
+		if (this.genders().some(g => !student.genders().includes(g))) return false
 
 		// S'il n'a pas les extras de la liste, il n'est encore une fois pas concerné.
-		if (this.extras().find(e => !student.extras().includes(e))) return false
+		if (this.extras().some(e => !student.extras().includes(e))) return false
 
 		// L'élève correspond à l'attribut.
 		return true
