@@ -1,6 +1,6 @@
 export const description = "Regrouper et équilibrer le niveau de l'option allemand entre les classes (500 élèves)"
 export const studentsFile = "../data/users-500.json"
-export const inputFile = "../data/input-500-balance-deutsch-class-level.json"
+export const inputFile = "../data/input-500-balance-deutsch-level.json"
 export const keysMask = ["allemand"]
 export const showLevel = true
 export const output = [

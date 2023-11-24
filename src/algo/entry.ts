@@ -2,7 +2,7 @@ import Class, {ClassWithIndex} from "./class.ts"
 import Algo from "./algo.ts"
 import {Student} from "./student.ts"
 import {Rule} from "./rules/rule.ts"
-import {Attribute} from "./attribute.ts";
+import {Attribute} from "./attribute.ts"
 
 /**
  * Instance de solution possible au problème.
@@ -161,7 +161,11 @@ export default class Entry {
 			otherClass.shuffleStudents()
 
 			// Déterminer l'élève de la classe de destination avec qui échanger.
-			const otherStudent: Student | null = studentClass.class.findBestStudentFor(entry, otherClass.getStudents(), rule)
+			const otherStudent: Student | null = studentClass.class.findBestStudentFor(
+				entry,
+				otherClass.getStudents(),
+				rule
+			)
 
 			// Déplacer cet élève dans la classe initiale du premier élève (échanger).
 			entry.moveStudent(
@@ -184,10 +188,14 @@ export default class Entry {
 		// On supprime tous les doublons d'élèves qui ont les mêmes attributs.
 		return students.reduce((acc, cur) => {
 			// Si la liste d'attributs de cet élève n'est pas encore représentée dans la liste, on ajoute l'élève.
-			if (!acc.some(s =>
-				s.attributes().length === cur.attributes().length && 
-				!s.attributes().some(a => !cur.attributes().includes(a))
-			)) acc.push(cur)
+			if (
+				!acc.some(
+					s =>
+						s.attributes().length === cur.attributes().length &&
+						!s.attributes().some(a => !cur.attributes().includes(a))
+				)
+			)
+				acc.push(cur)
 			return acc
 		}, [] as Student[])
 	}

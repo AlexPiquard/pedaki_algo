@@ -3,7 +3,7 @@ import Class from "../class.ts"
 import {Input, RawRule} from "../input.ts"
 import {Student} from "../student.ts"
 import {DEFAULT_PRIORITY} from "../algo.ts"
-import {Attribute} from "../attribute.ts";
+import {Attribute} from "../attribute.ts"
 
 export abstract class Rule {
 	private readonly rule: RawRule
@@ -53,4 +53,18 @@ export abstract class Rule {
 	 * Retourne également la liste des classes dans lesquels il ne doit pas être déplacé.
 	 */
 	public abstract getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]}
+
+	/**
+	 * Obtenir la différence d'une valeur par rapport à un objectif.
+	 * Prend en compte un objectif décimal (autorise les deux entiers).
+	 */
+	public getDifference = (value: number, goal: number) => {
+		// Si l'objectif est un nombre entier, on le compare directement
+		if (goal % 1 === 0) return value - goal
+		// Si l'objectif est décimal, on autorise les deux nombres entiers.
+		else if (value > Math.ceil(goal)) return value - Math.ceil(goal)
+		else if (value < Math.floor(goal)) return value - Math.floor(goal)
+
+		return 0
+	}
 }

@@ -1,5 +1,5 @@
 import {Input} from "./input.ts"
-import {Attribute} from "./attribute.ts";
+import {Attribute} from "./attribute.ts"
 
 export interface RawStudent {
 	id: string
@@ -25,7 +25,7 @@ export class Student {
 	// Liste des "caractéristiques" de l'élève, associé à chaque niveau.
 	// Contient les options, genres et extras.
 	private readonly _levels: {[option: string]: number}
-	
+
 	// Liste des attributs correspondants à l'élève.
 	private _attributes: Attribute[] | null = null
 
@@ -57,7 +57,9 @@ export class Student {
 
 	public extras(): string[] {
 		if (!this.student.extra) return []
-		return Object.entries(this.student.extra).filter(([,bool]) => !!bool).map(([key]) => key)
+		return Object.entries(this.student.extra)
+			.filter(([, bool]) => !!bool)
+			.map(([key]) => key)
 	}
 
 	/**

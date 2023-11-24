@@ -3,7 +3,7 @@ import {Rule} from "./rule.ts"
 import Class from "../class.ts"
 import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
-import {Attribute} from "../attribute.ts";
+import {Attribute} from "../attribute.ts"
 
 /**
  * Répartir équitablement le nombre d'élèves dans chaque classe.
@@ -53,7 +53,7 @@ export class BalanceCountRule extends Rule {
 		// On n'attribue pas de mauvaise valeur à ceux qui ont un faible niveau dans une classe trop faible,
 		// parce qu'on n'est pas sûr qu'il sera échangé avec quelqu'un du même attribut, il y a trop de risques de tout casser.
 		return {
-			value: hasAndMore? Math.abs(diff) : 0,
+			value: hasAndMore ? Math.abs(diff) : 0,
 			worseClasses: entry.classes().filter((_c, classKey) => {
 				const classDiff = this.getDifference(this.getRelatedStudentsOfClass(entry, classKey), countGoal)
 				return !this.attribute() || student.hasAttribute(this.attribute()!) ? classDiff > 0 : classDiff < 0
@@ -68,20 +68,6 @@ export class BalanceCountRule extends Rule {
 	public getCountPerClass = (entry: Entry, attribute?: Attribute): number => {
 		if (!attribute) return entry.algo().input().students().length / entry.classes().length
 		return attribute.count() / entry.getClassesWithAttribute(attribute).length
-	}
-
-	/**
-	 * Obtenir la différence d'un nombre d'élèves par rapport à un objectif.
-	 * Prend en compte un objectif décimal (autorise les deux entiers).
-	 */
-	public getDifference = (value: number, goal: number) => {
-		// Si l'objectif est un nombre entier, on le compare directement
-		if (goal % 1 === 0) return value - goal
-		// Si l'objectif est décimal, on autorise les deux nombres entiers.
-		else if ( value > Math.ceil(goal)) return value - Math.ceil(goal)
-		else if (value < Math.floor(goal)) return value - Math.floor(goal)
-
-		return 0
 	}
 
 	/**

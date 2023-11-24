@@ -74,10 +74,7 @@ export class Attribute {
 		if (this.options().some(o => !(o in student.levels()))) return false
 
 		// S'il n'a pas l'un des niveaux de la liste pour chaque option, il n'est pas concerné non plus.
-		if (
-			this.levels().length &&
-			this.options().some(o => !this.levels().some(l => student.levels()[o] === l))
-		)
+		if (this.levels().length && this.options().some(o => !this.levels().some(l => student.levels()[o] === l)))
 			return false
 
 		// S'il n'a pas le ou les genres de la liste, il n'est toujours pas concerné.

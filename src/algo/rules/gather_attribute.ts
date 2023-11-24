@@ -3,7 +3,7 @@ import {Rule} from "./rule.ts"
 import Class from "../class.ts"
 import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
-import {Attribute} from "../attribute.ts";
+import {Attribute} from "../attribute.ts"
 
 /**
  * Regrouper un certain attribut dans un minimum de classes.
@@ -52,9 +52,7 @@ export class GatherAttributeRule extends Rule {
 			// Les pires classes sont celles qui regroupent l'attribut.
 			return {
 				value:
-					studentClassIndex in excludedClasses
-						? 0
-						: entry.class(studentClassIndex)!.count(this.attribute()!),
+					studentClassIndex in excludedClasses ? 0 : entry.class(studentClassIndex)!.count(this.attribute()!),
 				worseClasses: entry.classes().filter((_c, i) => !(i in excludedClasses)),
 			}
 		}

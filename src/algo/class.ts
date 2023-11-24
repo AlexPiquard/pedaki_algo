@@ -1,7 +1,7 @@
 import {Student} from "./student.ts"
 import {Attribute} from "./attribute.ts"
-import Entry from "./entry.ts";
-import {Rule} from "./rules/rule.ts";
+import Entry from "./entry.ts"
+import {Rule} from "./rules/rule.ts"
 
 export type ClassWithIndex = {class: Class; index: number}
 
@@ -27,7 +27,7 @@ export default class Class {
 	}
 
 	public count(attribute: Attribute): number {
-		return this.attributesCount[attribute.key()]
+		return this.attributesCount[attribute.key()] ?? 0
 	}
 
 	public removeStudent(student: Student) {
@@ -74,7 +74,10 @@ export default class Class {
 
 			// On effectue le déplacement de l'élève dans cette classe.
 			const newEntry = entry.clone()
-			newEntry.moveStudent(student, newEntry.searchStudent(student)!, {class: newEntry.class(entry.classes().indexOf(this))!, index: entry.classes().indexOf(this)})
+			newEntry.moveStudent(student, newEntry.searchStudent(student)!, {
+				class: newEntry.class(entry.classes().indexOf(this))!,
+				index: entry.classes().indexOf(this),
+			})
 			results[studentIndex] = 0
 
 			for (let rule of newEntry.algo().input().rules()) {
@@ -90,7 +93,7 @@ export default class Class {
 		}
 
 		// On cherche l'élève dont le déplacement a respecté le plus de règles.
-		let bestValue = - Number.MAX_VALUE
+		let bestValue = -Number.MAX_VALUE
 		let bestStudent = null
 		for (const studentIndex in results) {
 			if (results[studentIndex] > bestValue) {
