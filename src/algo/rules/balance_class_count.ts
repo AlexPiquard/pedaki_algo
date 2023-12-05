@@ -78,7 +78,10 @@ export class BalanceClassCountRule extends Rule {
 			.classes()
 			.map(c => ({class: c, attributes: this.attributes().filter(a => c.count(a) > 0)}))
 			.filter(c => c.attributes.length > 1)
-			.sort((a, b) => a.attributes.length - b.attributes.length)
+			.sort((a, b) =>
+				// On trie par nombre d'attributs possédés, et sinon par différence de dénombrement
+				// TODO la classe ignorée est mal choisie dans le test allemand + genre, et voir aussi quels sont les eleves mal placés restants, et si c'est normal
+				a.attributes.length - b.attributes.length)
 			.map(c => c.class)
 
 		// Si toutes les classes sont concernées, il y a forcément au moins une classe à ignorer s'il n'y a pas le même dénombrement de chaque attribut par défaut.
