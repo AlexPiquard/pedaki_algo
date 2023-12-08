@@ -22,14 +22,23 @@ export default class Class {
 		this.students.sort(() => 0.5 - Math.random())
 	}
 
+	/**
+	 * Obtenir la liste des élèves présents dans cette classe.
+	 */
 	public getStudents(): Student[] {
 		return this.students
 	}
 
-	public count(attribute: Attribute): number {
-		return this.attributesCount[attribute.key()] ?? 0
+	/**
+	 * Obtenir le nombre d'élèves qui possède un certain attribut dans la classe.
+	 */
+	public count(attribute: Attribute | number): number {
+		return this.attributesCount[typeof attribute === "number" ? attribute : attribute.key()] ?? 0
 	}
 
+	/**
+	 * Retirer un élève de la classe.
+	 */
 	public removeStudent(student: Student) {
 		this.students.splice(
 			this.students.findIndex(s => s === student),
@@ -42,6 +51,9 @@ export default class Class {
 		}
 	}
 
+	/**
+	 * Ajouter un élève à la classe.
+	 */
 	public addStudent(student: Student) {
 		this.students.push(student)
 
@@ -51,6 +63,9 @@ export default class Class {
 		}
 	}
 
+	/**
+	 * Déterminer si cette classe contient un certain élève.
+	 */
 	public hasStudent(id: string) {
 		for (const student of this.students) {
 			if (student.id() === id) return true
@@ -60,15 +75,40 @@ export default class Class {
 	}
 
 	/**
+	 * Déterminer si cette classe est égale à une autre, en comparant la liste des élèves.
+	 */
+	public equals(other: Class): boolean {
+		if (other.getStudents().length != this.students.length) return false
+
+		for (let s1 of this.students) {
+			if (!other.getStudents().includes(s1)) return false
+		}
+
+		return true
+	}
+
+	/**
+	 * Déterminer si cette classe est égale à une autre, en ne comparant que les dénombrements.
+	 */
+	public equalsCount(other: Class): boolean {
+		for (const [attribute, count] of Object.entries(this.attributesCount)) {
+			if (other.count(parseInt(attribute)) != count) return false
+		}
+
+		return true
+	}
+
+	/**
 	 * Trouver l'élève idéal pour aller dans cette classe.
 	 * Doit prendre en compte les précédentes règles et leur priorité.
 	 */
 	public findBestStudentFor(entry: Entry, students: Student[], toRule?: Rule): Student {
 		// On récupère une liste réduite d'élèves, mais qui contient quand même l'ensemble des cas.
 		const sample = entry.getStudentSample(students)
-		const results: number[] = []
+		let bestValues: number[] | undefined = undefined
+		let bestStudent: Student | undefined = undefined
 
-		// On teste le nombre de règles respectés pour chaque élève, s'il est déplacé dans la classe.
+		// On teste le nombre de règles respectées pour chaque élève, s'il est déplacé dans la classe.
 		for (const studentIndex in sample) {
 			const student = sample[studentIndex]
 
@@ -78,27 +118,24 @@ export default class Class {
 				class: newEntry.class(entry.classes().indexOf(this))!,
 				index: entry.classes().indexOf(this),
 			})
-			results[studentIndex] = 0
 
-			for (let rule of newEntry.algo().input().rules()) {
-				// Si cette règle n'est pas respectée, on s'arrête là.
-				if (rule.getEntryValue(newEntry) != 0) break
+			const values: number[] = []
+			for (let index in newEntry.algo().input().rules()) {
+				const rule = newEntry.algo().input().rules()[index]
 
-				// On incrémente le nombre de règles respectées avec cet élève.
-				results[studentIndex] = studentIndex in results ? results[studentIndex] + 1 : 1
+				// Si la valeur est déjà supérieure à la meilleure, on abandonne cette configuration.
+				if (bestValues && newEntry.value(rule) > bestValues[index]) break
 
-				// Si on a trouvé un élève dont le déplacement respecte l'ensemble des règles, on le retourne tout de suite.
-				if (rule === toRule) return student
+				// On définit la valeur de cette règle avec cette configuration.
+				values[index] = newEntry.value(rule)
+
+				// Si on a atteint la règle limite, on ne va pas plus loin pour cette configuration.
+				if (rule === toRule) break
 			}
-		}
 
-		// On cherche l'élève dont le déplacement a respecté le plus de règles.
-		let bestValue = -Number.MAX_VALUE
-		let bestStudent = null
-		for (const studentIndex in results) {
-			if (results[studentIndex] > bestValue) {
-				bestStudent = sample[studentIndex]
-				bestValue = results[studentIndex]
+			if (!bestValues || values.length === bestValues.length) {
+				bestValues = values
+				bestStudent = student
 			}
 		}
 

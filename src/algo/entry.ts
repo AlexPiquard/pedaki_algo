@@ -10,7 +10,10 @@ import {Attribute} from "./attribute.ts"
  */
 export default class Entry {
 	private readonly _algo: Algo
-	private readonly _classes: Class[]
+	private _classes: Class[]
+
+	// La valeur actuelle de cette configuration pour chaque règle. Elle est invalidée à chaque modification.
+	private _values: {[rule: string]: number} = {}
 
 	constructor(algo: Algo, classes: Class[]) {
 		this._algo = algo
@@ -51,6 +54,15 @@ export default class Entry {
 	}
 
 	/**
+	 * Obtenir la valeur de cette configuration, relative à une règle.
+	 */
+	public value(rule: Rule): number {
+		const index = this.algo().input().rules().indexOf(rule)
+		if (!(index in this._values)) this._values[index] = rule.getEntryValue(this)
+		return this._values[index]
+	}
+
+	/**
 	 * Suppression d'une classe dans cette configuration.
 	 */
 	public deleteClass(classIndex: number) {
@@ -64,6 +76,9 @@ export default class Entry {
 	public moveStudent(student: Student, from: ClassWithIndex, to: ClassWithIndex) {
 		from.class.removeStudent(student)
 		to.class.addStudent(student)
+
+		// On invalide la valeur de la configuration puisqu'elle a changé.
+		this._values = {}
 	}
 
 	public static default(algo: Algo): Entry {
@@ -89,8 +104,9 @@ export default class Entry {
 	/**
 	 * Déplacer les élèves mal placés la configuration actuelle et retourner une nouvelle disposition.
 	 * Prend en compte une règle d'objectif qui va tenter d'être respectée.
+	 * Retourne le nombre de déplacements effectués (chaque déplacement améliore le respect de la règle).
 	 */
-	public randomChange(rule: Rule): Entry {
+	public moveStudents(rule: Rule): {entry: Entry; moves: number} {
 		// Cloner la configuration actuelle pour en retourner une nouvelle différente.
 		const entry = this.clone()
 		// Obtenir la liste de tous les élèves.
@@ -99,86 +115,124 @@ export default class Entry {
 			.map(c => c.getStudents())
 			.flat()
 
+		// On compte le nombre de déplacements réalisés (ils ne sont réalisés que s'ils sont bénéfiques).
+		let moves = 0
+
 		// On déplace tous les élèves mal placés dans des classes suggérées.
 		for (let student of allStudents) {
-			// Récupération de la valeur de placement de l'élève, relative à la règle courante, ainsi que la liste des classes à éviter.
-			const {value, worseClasses} = rule.getStudentValue(entry, student)
-
-			// Si l'élève est déjà bien placé, on ne fait rien de plus.
-			if (value <= 0) continue
-
-			// On ajoute la classe actuelle de l'élève dans les classes ignorées.
-			if (!worseClasses.includes(entry.searchStudent(student)?.class!)) {
-				worseClasses.push(entry.searchStudent(student)?.class!)
-			}
-
-			// Ajouter des pires classes des règles précédentes.
-			for (let r of entry.algo().input().rules()) {
-				if (r === rule) break
-				worseClasses.push(
-					...r.getStudentValue(entry, student).worseClasses.filter(c => !worseClasses.includes(c))
-				)
-			}
-
-			// On applique un changement relatif à cet élève et à ses classes idéales.
-			this.randomChangeMove(
-				student,
-				entry.classes().filter(c => !worseClasses.includes(c)),
-				entry,
-				rule
-			)
+			// On applique un changement relatif à cet élève et cette règle
+			if (entry.applyRuleForStudent(student, rule)) moves++
 
 			// Si le changement précédent a permis de respecter la règle, on s'arrête là.
-			if (rule.getEntryValue(entry) === 0) break
+			if (entry.value(rule) === 0) break
 		}
 
-		return entry
+		return {entry, moves}
 	}
 
-	private randomChangeMove(student: Student, destinations: Class[], entry: Entry, rule: Rule): Entry {
-		// Obtenir la classe actuelle de l'élève qui sera déplacé.
-		const studentClass = entry.searchStudent(student)!
 
-		// On supprime les éventuelles classes supprimées de la liste des destinations.
-		destinations = destinations.filter(c => entry.classes().indexOf(c) >= 0)
+	/**
+	 * Obtenir la liste des classes envisageables pour un élève.
+	 * S'il ne doit pas être déplacé, rien n'est retourné.
+	 */
+	private getStudentBestClasses(student: Student, rule: Rule): Class[] | undefined {
+		// Récupération de la valeur de placement de l'élève, relative à la règle courante, ainsi que la liste des classes à éviter.
+		const {value, worseClasses} = rule.getStudentValue(this, student)
 
-		// Choisir une autre classe, différente de celle choisie précédemment, en respectant l'éventuelle liste des destinations idéales.
-		let otherClass = !!destinations.length && destinations[Math.floor(Math.random() * destinations.length)]
-		if (!otherClass) {
+		// Si l'élève est déjà bien placé, on ne fait rien de plus.
+		if (value <= 0) return undefined
+
+		// On ajoute la classe actuelle de l'élève dans les classes ignorées.
+		if (!worseClasses.includes(this.searchStudent(student)?.class!)) {
+			worseClasses.push(this.searchStudent(student)?.class!)
+		}
+
+		// Ajouter des pires classes des règles précédentes.
+		for (let r of this.algo().input().rules()) {
+			if (r === rule) break
+			worseClasses.push(...r.getStudentValue(this, student).worseClasses.filter(c => !worseClasses.includes(c)))
+		}
+
+		return this.classes().filter(c => !worseClasses.includes(c))
+	}
+
+	/**
+	 * Déplacer un élève dans une autre classe, en prenant en compte l'éventuel échange nécessaire.
+	 */
+	private moveAndExchangeStudent(student: Student, rule: Rule, origin: ClassWithIndex, destination?: Class): boolean {
+		if (!destination) {
 			// Si on a atteint le nombre maximum de classes, on ne fait rien.
-			if (entry.classes().length >= entry.algo().input().classAmount()) return entry
-			// Aucune classe idéale n'existe pour cet élève, donc on en crée une nouvelle.
-			otherClass = new Class([])
-			entry.classes().push(otherClass)
+			if (this.classes().length >= this.algo().input().classAmount()) return false
+			// Création d'une nouvelle classe si aucune n'est définie.
+			destination = new Class([])
+			this.classes().push(destination)
 		}
 
 		// Déplacer l'élève dans l'autre classe.
-		entry.moveStudent(student, studentClass, {class: otherClass, index: entry.classes().indexOf(otherClass)})
+		this.moveStudent(student, origin, {class: destination, index: this.classes().indexOf(destination)})
 
 		// On l'échange avec un élève de sa nouvelle classe si elle est pleine.
-		if (otherClass.getStudents().length > this.algo().input().classSize()) {
+		if (destination.getStudents().length > this.algo().input().classSize()) {
 			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé (on randomise la liste pour éviter de choisir toujours le même élève).
-			otherClass.shuffleStudents()
+			destination.shuffleStudents()
 
 			// Déterminer l'élève de la classe de destination avec qui échanger.
-			const otherStudent: Student | null = studentClass.class.findBestStudentFor(
-				entry,
-				otherClass.getStudents(),
-				rule
-			)
+			const otherStudent: Student | null = origin.class.findBestStudentFor(this, destination.getStudents(), rule)
 
 			// Déplacer cet élève dans la classe initiale du premier élève (échanger).
-			entry.moveStudent(
-				otherStudent!,
-				{class: otherClass, index: entry.classes().indexOf(otherClass)},
-				studentClass
-			)
-		} else if (studentClass?.class.getStudents().length === 0) {
-			// Supprimer la classe s'il n'y a plus d'élèves dedans.
-			entry.deleteClass(studentClass.index)
+			this.moveStudent(otherStudent!, {class: destination, index: this.classes().indexOf(destination)}, origin)
 		}
 
-		return entry
+		// Supprimer la classe s'il n'y a plus d'élèves dedans.
+		if (origin?.class.getStudents().length === 0) this.deleteClass(origin.index)
+
+		return true
+	}
+
+	/**
+	 * Appliquer une règle sur un élève afin de le déplacer dans la bonne classe.
+	 * Un éventuel échange est effectué pour respecter la limite de taille de classe.
+	 * Chaque destination envisageable est testée pour que la meilleure soit choisie.
+	 */
+	private applyRuleForStudent(student: Student, rule: Rule): boolean {
+		// Obtenir la liste des destinations envisageables pour l'élève.
+		const destinations: (Class | undefined)[] | undefined = this.getStudentBestClasses(student, rule)
+		if (!destinations) return false
+		if (!destinations.length) destinations.push(undefined)
+
+		// Obtenir la classe actuelle de l'élève qui sera déplacé.
+		const origin = this.searchStudent(student)!
+
+		// Création des variables de recherche de la meilleure configuration.
+		let bestEntry = null,
+			bestValue = Number.MAX_VALUE
+
+		// On réalise le déplacement dans chaque destination séparément et on prend le meilleur résultat.
+		for (let destination of destinations) {
+			// Création d'une nouvelle configuration à partir de celle-ci.
+			const entry = this.clone()
+
+			// Réalisation du déplacement, avec un potentiel échange.
+			origin.class = entry.class(origin.index)!
+			if (destination) destination = entry.class(this.classes().indexOf(destination))!
+			if (!entry.moveAndExchangeStudent(student, rule, origin, destination)) continue
+
+			// On compare cette nouvelle configuration pour trouver la meilleure.
+			if (entry.value(rule) < bestValue) {
+				bestEntry = entry
+				bestValue = entry.value(rule)
+			}
+		}
+
+		// On indique en retour si ce changement a été bénéfique ou non.
+		if (bestValue < this.value(rule)) {
+			// On applique les modifications dans cette configuration.
+			this._classes = bestEntry!.classes()
+			this._values[this.algo().input().rules().indexOf(rule)] = bestEntry!.value(rule)
+			return true
+		}
+
+		return false
 	}
 
 	/**
@@ -198,6 +252,23 @@ export default class Entry {
 				acc.push(cur)
 			return acc
 		}, [] as Student[])
+	}
+
+	/**
+	 * Déterminer si une classe est égale à une autre.
+	 * Peut ne prendre en compte que les dénombrements.
+	 */
+	public equals(entry: Entry, onlyCount?: boolean): boolean {
+		if (entry.classes().length != this.classes().length) return false
+
+		for (let c1 of this.classes()) {
+			for (let c2 of entry.classes()) {
+				if (!onlyCount && !c1.equals(c2)) return false
+				if (onlyCount && !c1.equalsCount(c2)) return false
+			}
+		}
+
+		return true
 	}
 
 	toString(showLevel?: boolean, ...keysMask: string[]) {

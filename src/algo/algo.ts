@@ -30,14 +30,14 @@ export default class Algo {
 
 		// On fait respecter chaque règle en respectant l'ordre de priorité.
 		for (let rule of this.input().rules()) {
-			// On fait des changements semi-aléatoires jusqu'à ce que cette règle soit respectée.
-			while (rule.getEntryValue(entry) > 0) {
-				// On fait un changement semi-aléatoire.
-				entry = entry.randomChange(rule)
+			// On effectue les déplacements jusqu'à ce que cette règle soit respectée, ou que plus aucun déplacement ne soit possible.
+			let moves = Number.MAX_VALUE
+			while (entry.value(rule) > 0 && moves > 0) {
+				// On effectue les déplacements voulus por la règle courante.
+				;({entry, moves} = entry.moveStudents(rule))
 			}
 		}
 
-		// TODO gérer les règles qui ne sont pas compatibles (qui vont boucler à l'infini)
 		// TODO retourner un status pour chaque règle (pris en compte - ignoré)
 		// TODO s'assurer qu'il n'y a jamais de régression d'une règle à l'autre, c'est pas censé arriver mais il faut sécuriser
 		return {entry: entry, duration: (Date.now() - startTime) / 1000}

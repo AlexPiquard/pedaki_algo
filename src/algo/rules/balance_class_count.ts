@@ -20,12 +20,7 @@ export class BalanceClassCountRule extends Rule {
 		// On compte la différence entre le dénombrement de chaque attribut dans chaque classe.
 		let value = 0
 		for (let c of this.getRelatedClasses(entry)) {
-			const goal = this.getClassAvgCount(c)
-			for (let attribute of this.attributes()) {
-				// On incrémente la différence entre le dénombrement de l'attribut et l'objectif,
-				// en acceptant l'intervalle de l'objectif décimal.
-				value += Math.abs(this.getDifference(c.count(attribute), goal))
-			}
+			value += this.getClassValue(c)
 		}
 		return value
 	}
@@ -45,7 +40,7 @@ export class BalanceClassCountRule extends Rule {
 			let value = 0
 			for (let attribute of student.attributes()) {
 				if (!this.attributes().includes(attribute)) continue
-				if (c.count(attribute) > goal) value += c.count(attribute) - goal
+				if (c.count(attribute) > goal) value += this.getDifference(c.count(attribute), goal)
 			}
 			return value
 		}
@@ -69,6 +64,17 @@ export class BalanceClassCountRule extends Rule {
 		return sum / this.attributes().length
 	}
 
+	private getClassValue(c: Class) {
+		let value = 0
+		const goal = this.getClassAvgCount(c)
+		for (let attribute of this.attributes()) {
+			// On incrémente la différence entre le dénombrement de l'attribut et l'objectif,
+			// en acceptant l'intervalle de l'objectif décimal.
+			value += Math.abs(this.getDifference(c.count(attribute), goal))
+		}
+		return value
+	}
+
 	/**
 	 * Obtenir les classes concernées par la règle.
 	 */
@@ -78,10 +84,12 @@ export class BalanceClassCountRule extends Rule {
 			.classes()
 			.map(c => ({class: c, attributes: this.attributes().filter(a => c.count(a) > 0)}))
 			.filter(c => c.attributes.length > 1)
-			.sort((a, b) =>
+			.sort((a, b) => {
 				// On trie par nombre d'attributs possédés, et sinon par différence de dénombrement
-				// TODO la classe ignorée est mal choisie dans le test allemand + genre, et voir aussi quels sont les eleves mal placés restants, et si c'est normal
-				a.attributes.length - b.attributes.length)
+				if (a.attributes.length === b.attributes.length)
+					return this.getClassValue(b.class) - this.getClassValue(a.class)
+				return a.attributes.length - b.attributes.length
+			})
 			.map(c => c.class)
 
 		// Si toutes les classes sont concernées, il y a forcément au moins une classe à ignorer s'il n'y a pas le même dénombrement de chaque attribut par défaut.

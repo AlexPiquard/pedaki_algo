@@ -48,10 +48,16 @@ describe("get classes from input", function () {
 
 				// On vérifie que chaque classe du résultat était bien dénombrée à l'identique dans le test.
 				const classesToValidate = entry.classes()
-				for (const outputClass of output) {
-					const validClass = classesToValidate.findIndex(c => c && isClassValid(c, outputClass))
-					if (validClass != -1) delete classesToValidate[validClass]
-					assert.notEqual(validClass, -1, "Cant find a valid model for a resulted class")
+				let minClassesMatching = 1
+				while (classesToValidate.length) {
+					for (const outputClass of output) {
+						const validClasses = classesToValidate.filter(c => c && isClassValid(c, outputClass))
+						assert.notEqual(validClasses.length, 0, "Cant find a valid model for a resulted class")
+						if (validClasses.length > minClassesMatching) continue
+						classesToValidate.splice(classesToValidate.indexOf(validClasses[0]), 1)
+						output.splice(output.indexOf(outputClass), 1)
+					}
+					++minClassesMatching
 				}
 			}
 		})

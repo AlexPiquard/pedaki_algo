@@ -1,7 +1,7 @@
 export const description = "Regrouper et équilibrer le niveau de l'option allemand dans chaque classe, et équilibrer le dénombrement des genres dans chaque classe (500 élèves)"
 export const studentsFile = "../data/users-500.json"
 export const inputFile = "../data/input-500-balance-deutsch-and-gender-class-level.json"
-export const keysMask = ["allemand"]
+export const keysMask = ["allemand", "M", "F"]
 export const showLevel = true
 export const output = [
   {
@@ -24,7 +24,7 @@ export const output = [
     M: {count: 50},
     F: {count: 50}
   },
-  {M: {count: [49, 50]}, F: {count: [49, 50]}},
-  {M: {count: [49, 50]}, F: {count: [49, 50]}},
-  {M: {count: [49, 50]}, F: {count: [49, 50]}},
+  {M: {count: [48, 52]}, F: {count: [48, 52]}},
+  {M: {count: 50}, F: {count: 50}},
+  {M: {count: 50}, F: {count: 50}},
 ]
