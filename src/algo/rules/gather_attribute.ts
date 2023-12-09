@@ -45,16 +45,11 @@ export class GatherAttributeRule extends Rule {
 				worseClasses: Object.keys(excludedClasses).map(classKey => entry.class(classKey)!),
 			}
 		}
-		// S'il n'a pas l'attribut, il ne doit pas être dans une classe qui le regroupe.
-		else {
-			// S'il n'est pas dans une classe qui regroupe l'attribut, il est déjà bien placé.
-			// Sinon, on retourne le nombre d'élèves ayant le bon attribut dans la classe.
-			// Les pires classes sont celles qui regroupent l'attribut.
-			return {
-				value:
-					studentClassIndex in excludedClasses ? 0 : entry.class(studentClassIndex)!.count(this.attribute()!),
-				worseClasses: entry.classes().filter((_c, i) => !(i in excludedClasses)),
-			}
+
+		// Dans tous les autres cas, il est bien placé et n'a pas de classe interdite.
+		return {
+			value: 0,
+			worseClasses: []
 		}
 	}
 

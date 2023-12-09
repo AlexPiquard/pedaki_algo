@@ -17,11 +17,6 @@ export default class Class {
 		}
 	}
 
-	public shuffleStudents() {
-		// TODO trouver mieux que ça ?
-		this.students.sort(() => 0.5 - Math.random())
-	}
-
 	/**
 	 * Obtenir la liste des élèves présents dans cette classe.
 	 */

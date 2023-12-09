@@ -13,42 +13,48 @@ export class BalanceClassCountRule extends Rule {
 	}
 
 	/**
-	 * On dénombre chaque attribut dans chaque classe, et on additionne les différences.
-	 * On ignore les classes non concernées.
+	 * Produit de somme des différences de dénombrement des attributs de chaque classe.
+	 * La première différence est incrémentée de 1 pour éviter la multiplication par 0.
 	 */
 	override getEntryValue(entry: Entry): number {
 		// On compte la différence entre le dénombrement de chaque attribut dans chaque classe.
+		let values: number[] = []
+		for (let c of entry.classes()) {
+			if (!this.hasClassAttributes(c)) continue
+			values.push(this.getClassValue(c))
+		}
+
+		// On trie la liste dans un ordre croissant.
+		values = values.sort((a, b) => a - b)
+
+		// On effectue le produit, en incrémentant la première valeur pour se débarrasser du 0.
 		let value = 0
-		for (let c of this.getRelatedClasses(entry)) {
-			value += this.getClassValue(c)
+		for (let v of values) {
+			if (value === 0) value = v + 1
+			else value *= v
 		}
 		return value
 	}
 
 	/**
-	 * La valeur correspond au nombre d'élèves qui ont un attribut trop présent dans la classe.
-	 * Les pires classes sont celles qui ont trop au moins l'un des attributs de l'élève, parmi celles à prendre en compte.
+	 * La valeur correspond à différence totale de dénombrement de chaque attribut de l'élève sa classe.
 	 */
 	override getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]} {
 		const c = entry.searchStudent(student)?.class!
 
-		// Méthode qui retourne la valeur de placement de l'élève dans une certaine classe.
-		// C'est la somme des différences de dénombrement des attributs que l'élève possède, qui sont supérieurs à l'objectif.
+		// Somme des différences de dénombrement des attributs que l'élève possède.
 		// L'objectif pris en compte est l'entier inférieur, afin de ne pas rester bloqué avec trop d'attributs.
-		const getValue = (c: Class): number => {
-			const goal = Math.floor(this.getClassAvgCount(c))
-			let value = 0
-			for (let attribute of student.attributes()) {
-				if (!this.attributes().includes(attribute)) continue
-				if (c.count(attribute) > goal) value += this.getDifference(c.count(attribute), goal)
-			}
-			return value
+		const goal = Math.floor(this.getClassAvgCount(c))
+		let value = 0
+		for (let attribute of student.attributes()) {
+			if (!this.attributes().includes(attribute)) continue
+			value += Math.abs(this.getDifference(c.count(attribute), goal))
 		}
 
 		return {
-			value: getValue(c),
-			// Les pires classes sont les classes concernées dans lesquelles la valeur serait positive.
-			worseClasses: this.getRelatedClasses(entry).filter(c => getValue(c) > 0),
+			value: value,
+			// Il n'y a aucune pire classe.
+			worseClasses: [],
 		}
 	}
 
@@ -64,6 +70,9 @@ export class BalanceClassCountRule extends Rule {
 		return sum / this.attributes().length
 	}
 
+	/**
+	 * Valeur d'une classe, correspondant à la différence de dénombrement de chaque attribut.
+	 */
 	private getClassValue(c: Class) {
 		let value = 0
 		const goal = this.getClassAvgCount(c)
@@ -76,40 +85,13 @@ export class BalanceClassCountRule extends Rule {
 	}
 
 	/**
-	 * Obtenir les classes concernées par la règle.
+	 * Détermine une certaine classe possède au moins un attribut concerné.
 	 */
-	private getRelatedClasses(entry: Entry): Class[] {
-		// Trier les classes par nombre d'attributs de la règle inclus, croissant.
-		const classesCount = entry
-			.classes()
-			.map(c => ({class: c, attributes: this.attributes().filter(a => c.count(a) > 0)}))
-			.filter(c => c.attributes.length > 1)
-			.sort((a, b) => {
-				// On trie par nombre d'attributs possédés, et sinon par différence de dénombrement
-				if (a.attributes.length === b.attributes.length)
-					return this.getClassValue(b.class) - this.getClassValue(a.class)
-				return a.attributes.length - b.attributes.length
-			})
-			.map(c => c.class)
-
-		// Si toutes les classes sont concernées, il y a forcément au moins une classe à ignorer s'il n'y a pas le même dénombrement de chaque attribut par défaut.
-		// On détermine les classes ignorées avec le nombre d'élèves en trop et le nombre d'élèves maximum par classe.
-		// On détermine donc le dénombrement minimal parmi tous les attributs.
-		let minAttributeCount = Number.MAX_VALUE
+	private hasClassAttributes(c: Class): boolean {
 		for (let attribute of this.attributes()) {
-			if (attribute.count() < minAttributeCount) minAttributeCount = attribute.count()
+			if (c.count(attribute) > 0) return true
 		}
 
-		// On détermine le nombre d'élèves qui seront exclus des classes équilibrées.
-		let ignoredStudents = 0
-		for (let attribute of this.attributes()) {
-			if (attribute.count() > minAttributeCount) ignoredStudents += attribute.count() - minAttributeCount
-		}
-
-		// Déterminer le nombre de classes qui ne pourront pas être équilibrées.
-		const ignoredClasses = Math.ceil(ignoredStudents / entry.algo().input().classSize())
-
-		// On retire les classes à ignorer qui possèdent le moins d'attributs liés.
-		return classesCount.slice(ignoredClasses, classesCount.length)
+		return false
 	}
 }

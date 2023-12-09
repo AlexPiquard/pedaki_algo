@@ -102,7 +102,7 @@ export default class Entry {
 	}
 
 	/**
-	 * Déplacer les élèves mal placés la configuration actuelle et retourner une nouvelle disposition.
+	 * Déplacer les élèves mal placés dans la configuration actuelle et retourner une nouvelle disposition.
 	 * Prend en compte une règle d'objectif qui va tenter d'être respectée.
 	 * Retourne le nombre de déplacements effectués (chaque déplacement améliore le respect de la règle).
 	 */
@@ -172,9 +172,6 @@ export default class Entry {
 
 		// On l'échange avec un élève de sa nouvelle classe si elle est pleine.
 		if (destination.getStudents().length > this.algo().input().classSize()) {
-			// Déterminer l'élève de sa nouvelle classe qui est le moins bien placé (on randomise la liste pour éviter de choisir toujours le même élève).
-			destination.shuffleStudents()
-
 			// Déterminer l'élève de la classe de destination avec qui échanger.
 			const otherStudent: Student | null = origin.class.findBestStudentFor(this, destination.getStudents(), rule)
 
@@ -186,6 +183,17 @@ export default class Entry {
 		if (origin?.class.getStudents().length === 0) this.deleteClass(origin.index)
 
 		return true
+	}
+
+	/**
+	 * Déterminer si cette configuration est moins bien qu'une autre, jusqu'à une certaine règle (non incluse).
+	 */
+	private isRegression(target: Entry, toRule: Rule): boolean {
+		for (let r of this.algo().input().rules()) {
+			if (r === toRule) break
+			if (this.value(r) > target.value(r)) return true
+		}
+		return false
 	}
 
 	/**
@@ -215,6 +223,9 @@ export default class Entry {
 			origin.class = entry.class(origin.index)!
 			if (destination) destination = entry.class(this.classes().indexOf(destination))!
 			if (!entry.moveAndExchangeStudent(student, rule, origin, destination)) continue
+
+			// Si cette configuration est moins bien concernant les règles précédentes, on l'ignore.
+			if (entry.isRegression(this, rule)) continue
 
 			// On compare cette nouvelle configuration pour trouver la meilleure.
 			if (entry.value(rule) < bestValue) {
