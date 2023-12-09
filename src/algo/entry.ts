@@ -130,7 +130,6 @@ export default class Entry {
 		return {entry, moves}
 	}
 
-
 	/**
 	 * Obtenir la liste des classes envisageables pour un élève.
 	 * S'il ne doit pas être déplacé, rien n'est retourné.
