@@ -49,7 +49,7 @@ export class GatherAttributeRule extends Rule {
 		// Dans tous les autres cas, il est bien placé et n'a pas de classe interdite.
 		return {
 			value: 0,
-			worseClasses: []
+			worseClasses: [],
 		}
 	}
 

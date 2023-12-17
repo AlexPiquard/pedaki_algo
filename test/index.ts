@@ -37,11 +37,13 @@ describe("get classes from input", function () {
 			const input = inputFile.default
 
 			const algo = new Algo(students, input)
-			const {entry, duration} = algo.solve()
+			const {entry, duration, rules} = algo.solve()
 			console.log(module.description)
 			console.log(`duration: ${duration}`)
+			for (const [i, {respect_percent}] of Object.entries(rules)) {
+				console.log(`respect percent of rule ${i}: ${respect_percent}`)
+			}
 			console.log(entry.toString(showLevel, ...keysMask))
-
 
 			if (output) {
 				assert.equal(entry.classes().length, output.length)
@@ -105,7 +107,7 @@ const isClassValid = (c: Class, model: OutputClass): boolean => {
 		// Comparaison du dénombrement de chaque niveau.
 		if (value.levels) {
 			for (const [level, count] of Object.entries(value.levels)) {
-				if (isValueDifferent(c.manualCount(attribute, level), count)) return false;
+				if (isValueDifferent(c.manualCount(attribute, level), count)) return false
 			}
 		}
 	}

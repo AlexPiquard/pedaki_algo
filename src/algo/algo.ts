@@ -4,7 +4,7 @@ import {RawStudent} from "./student.ts"
 
 export const DEFAULT_PRIORITY = 1
 
-export type Result = {entry: Entry; duration: number}
+export type Result = {entry: Entry; duration: number; rules: {respect_percent: number}[]}
 
 /**
  * On exécute une liste de règles dans un certain ordre.
@@ -27,6 +27,7 @@ export default class Algo {
 	public solve(): Result {
 		const startTime = Date.now()
 		let entry = Entry.default(this)
+		let result: Partial<Result> = {}
 
 		// On fait respecter chaque règle en respectant l'ordre de priorité.
 		for (let rule of this.input().rules()) {
@@ -36,10 +37,12 @@ export default class Algo {
 				// On effectue les déplacements voulus por la règle courante.
 				;({entry, moves} = entry.moveStudents(rule))
 			}
+			if (!result.rules) result.rules = []
+			result.rules.push({respect_percent: rule.getRespectPercent(entry)})
 		}
 
-		// TODO retourner un status pour chaque règle (pris en compte - ignoré)
-		// TODO s'assurer qu'il n'y a jamais de régression d'une règle à l'autre, c'est pas censé arriver mais il faut sécuriser
-		return {entry: entry, duration: (Date.now() - startTime) / 1000}
+		result.entry = entry
+		result.duration = (Date.now() - startTime) / 1000
+		return result as Result
 	}
 }

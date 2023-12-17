@@ -55,6 +55,22 @@ export abstract class Rule {
 	public abstract getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]}
 
 	/**
+	 * Obtenir le pourcentage de respect de cette règle pour une certaine configuration.
+	 * Correspond au nombre d'élèves bien placés par rapport au nombre total.
+	 * Si la valeur de la configuration est 0, alors le pourcentage est en revanche forcément 100.
+	 */
+	public getRespectPercent(entry: Entry): number {
+		if (this.getEntryValue(entry) <= 0) return 1
+		const percent =
+			entry
+				.algo()
+				.input()
+				.students()
+				.filter(s => this.getStudentValue(entry, s).value <= 0).length / entry.algo().input().students().length
+		return Math.round(percent * 100) / 100
+	}
+
+	/**
 	 * Obtenir la différence d'une valeur par rapport à un objectif.
 	 * Prend en compte un objectif décimal (autorise les deux entiers).
 	 */
