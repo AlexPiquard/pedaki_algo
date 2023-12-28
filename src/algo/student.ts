@@ -5,12 +5,7 @@ export interface RawStudent {
 	id: string
 	birthdate: Date
 	gender: Gender | Gender[]
-	relations?: {
-		positive?: string[]
-		negative?: string[]
-		required?: string[]
-		forbidden?: string[]
-	}
+	relationships?: {[student_id: string]: number}
 	// Je pars du principe que les niveaux présents indiquent les options choisies
 	levels: {[key: string]: number}
 	extra?: {[key: string]: boolean}
@@ -28,6 +23,9 @@ export class Student {
 
 	// Liste des attributs correspondants à l'élève.
 	private _attributes: Attribute[] | null = null
+
+	// Liste des niveaux de relations (positives et négatives), avec les élèves relatifs à chaque niveau.
+	private _relationships: {[value: number]: Student[]} | null = null
 
 	constructor(student: RawStudent, input: Input) {
 		this.student = student
@@ -79,5 +77,19 @@ export class Student {
 
 	public hasAttribute(attribute: Attribute): boolean {
 		return this._attributes?.includes(attribute) ?? false
+	}
+
+	public relationships() {
+		if (!this._relationships) this.loadRelationships()
+		return this._relationships!
+	}
+
+	private loadRelationships() {
+		this._relationships = {}
+		if (!this.student.relationships) return
+		for (const [studentId, value] of Object.entries(this.student.relationships)) {
+			if (!(value in this._relationships)) this._relationships[value] = []
+			this._relationships[value].push(this.input.student(studentId)!)
+		}
 	}
 }

@@ -6,6 +6,7 @@ import {MaximizeClassesRule} from "./rules/maximize_classes.ts"
 import {BalanceCountRule} from "./rules/balance_count.ts"
 import {Attribute} from "./attribute.ts"
 import {BalanceClassCountRule} from "./rules/balance_class_count.ts"
+import {PositiveRelationshipsRule} from "./rules/positive_relationships.ts"
 
 export interface RawInput {
 	constraints: {
@@ -55,13 +56,14 @@ const RuleOrder: {[ruleKey: string]: {rule: {new (rawRule: RawRule, input: Input
 	gather_attribute: {rule: GatherAttributeRule, priority: 2},
 	maximize_class_size: {rule: MaximizeClassSizeRule, priority: 2},
 	maximize_classes: {rule: MaximizeClassesRule, priority: 2},
+	positive_relationships: {rule: PositiveRelationshipsRule, priority: 2},
 	balance_count: {rule: BalanceCountRule, priority: 1},
 	balance_class_count: {rule: BalanceClassCountRule, priority: 1},
 }
 
 export class Input {
 	private readonly input: RawInput
-	private _students: Student[] = []
+	private _students: {[id: string]: Student} = {}
 
 	// Liste de tous les attributs, permettant de leur associer un unique identifiant.
 	private _attributes: Attribute[] = []
@@ -89,7 +91,12 @@ export class Input {
 	 * Obtenir la liste des élèves.
 	 */
 	public students(): Student[] {
-		return this._students
+		return Object.values(this._students)
+	}
+
+	public student(id: string): Student | undefined {
+		if (!(id in this._students)) return undefined
+		return this._students[id]
 	}
 
 	public attributes(): Attribute[] {
@@ -112,7 +119,12 @@ export class Input {
 		}
 
 		// On les instancie après parce qu'on a besoin des niveaux min et max.
-		this._students = rawStudents.map(student => new Student(student, this))
+		for (let rawStudent of rawStudents) {
+			const student = new Student(rawStudent, this)
+			if (student.id() in this._students)
+				throw new Error(`There are two or more students with id ${student.id()}`)
+			this._students[parseInt(student.id())] = student
+		}
 
 		for (const rawRule of Object.values(this.input.rules)) {
 			if (!(rawRule.rule in RuleOrder)) console.error(`Unknown rule ${rawRule.rule}`)
