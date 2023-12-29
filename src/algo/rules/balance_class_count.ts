@@ -1,4 +1,4 @@
-import {Rule} from "./rule.ts"
+import {Rule, StudentValue} from "./rule.ts"
 import {Input, RawRule} from "../input.ts"
 import Entry from "../entry.ts"
 import {Student} from "../student.ts"
@@ -39,7 +39,7 @@ export class BalanceClassCountRule extends Rule {
 	/**
 	 * La valeur correspond à différence totale de dénombrement de chaque attribut de l'élève sa classe.
 	 */
-	override getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]} {
+	override getStudentValue(entry: Entry, student: Student): StudentValue {
 		const c = entry.searchStudent(student)?.class!
 
 		// Somme des différences de dénombrement des attributs que l'élève possède.

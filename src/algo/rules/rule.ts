@@ -5,6 +5,8 @@ import {Student} from "../student.ts"
 import {DEFAULT_PRIORITY} from "../algo.ts"
 import {Attribute} from "../attribute.ts"
 
+export type StudentValue = {value: number; worseClasses: Class[]}
+
 export abstract class Rule {
 	private readonly rule: RawRule
 	private readonly _attributes: Attribute[]
@@ -52,7 +54,7 @@ export abstract class Rule {
 	 * Retourne une valeur relative à un élève et cette règle, correspondant à son placement actuel.
 	 * Retourne également la liste des classes dans lesquels il ne doit pas être déplacé.
 	 */
-	public abstract getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]}
+	public abstract getStudentValue(entry: Entry, student: Student): StudentValue
 
 	/**
 	 * Obtenir le pourcentage de respect de cette règle pour une certaine configuration.
@@ -66,7 +68,7 @@ export abstract class Rule {
 				.algo()
 				.input()
 				.students()
-				.filter(s => this.getStudentValue(entry, s).value <= 0).length / entry.algo().input().students().length
+				.filter(s => entry.studentValue(s, this).value <= 0).length / entry.algo().input().students().length
 		return Math.round(percent * 100) / 100
 	}
 

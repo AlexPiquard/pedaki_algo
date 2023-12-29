@@ -13,6 +13,9 @@ export interface RawStudent {
 
 export type Gender = "F" | "M"
 
+/**
+ * Chaque instance d'élève est unique et commune à toutes les configurations.
+ */
 export class Student {
 	private readonly student: RawStudent
 	private readonly input: Input

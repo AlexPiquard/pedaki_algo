@@ -1,7 +1,6 @@
-import {Rule} from "./rule.ts"
+import {Rule, StudentValue} from "./rule.ts"
 import Entry from "../entry.ts"
 import {Student} from "../student.ts"
-import Class from "../class.ts"
 import {Input, RawRule} from "../input.ts"
 
 /**
@@ -24,7 +23,7 @@ export class MaximizeClassesRule extends Rule {
 	 * La valeur correspond au nombre d'élèves dans la classe, il en faut le moins possible.
 	 * Les pires classe sont alors celles qui ont plus d'élèves que celle actuelle, ou toutes si on n'a pas atteint le nombre maximum de classes.
 	 */
-	override getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]} {
+	override getStudentValue(entry: Entry, student: Student): StudentValue {
 		const studentClass = entry.searchStudent(student)?.class!
 
 		return {

@@ -1,6 +1,5 @@
 import Entry from "../entry.ts"
-import {Rule} from "./rule.ts"
-import Class from "../class.ts"
+import {Rule, StudentValue} from "./rule.ts"
 import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
 import {Attribute} from "../attribute.ts"
@@ -39,7 +38,7 @@ export class BalanceCountRule extends Rule {
 	 * Pénalisation de la valeur si l'élève possède un attribut déjà trop présent dans sa classe.
 	 * Il ne doit pas être déplacé dans les classes qui ont trop l'attribut si lui ne l'a pas, et inversement.
 	 */
-	override getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]} {
+	override getStudentValue(entry: Entry, student: Student): StudentValue {
 		// Récupération de l'objectif de nombre d'élèves concernés.
 		const countGoal = this.getCountPerClass(entry, this.attribute())
 

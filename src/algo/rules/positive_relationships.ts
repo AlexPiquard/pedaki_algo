@@ -1,7 +1,6 @@
-import {Rule} from "./rule.ts"
+import {Rule, StudentValue} from "./rule.ts"
 import Entry from "../entry.ts"
 import {Student} from "../student.ts"
-import Class from "../class.ts"
 import {Input, RawRule} from "../input.ts"
 
 /**
@@ -21,7 +20,7 @@ export class PositiveRelationshipsRule extends Rule {
 			.algo()
 			.input()
 			.students()
-			.map(s => this.getStudentValue(entry, s).value)
+			.map(s => entry.studentValue(s, this).value)
 			.reduce((acc, cur) => acc + cur)
 	}
 
@@ -29,7 +28,7 @@ export class PositiveRelationshipsRule extends Rule {
 	 * La valeur correspond au nombre de relations positives non respectées.
 	 * Les pires classes sont alors celles ne respectant pas non plus les relations.
 	 */
-	override getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]} {
+	override getStudentValue(entry: Entry, student: Student): StudentValue {
 		let value = 0
 		const worseClasses = [...entry.classes()]
 		const studentClassIndex = entry.searchStudent(student)?.index!

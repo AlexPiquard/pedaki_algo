@@ -1,6 +1,5 @@
 import Entry from "../entry.ts"
-import {Rule} from "./rule.ts"
-import Class from "../class.ts"
+import {Rule, StudentValue} from "./rule.ts"
 import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
 import {Attribute} from "../attribute.ts"
@@ -26,7 +25,7 @@ export class GatherAttributeRule extends Rule {
 	 * L'élève peut être déplacé dans les classes qui regroupent une ou plusieurs de ses attributs.
 	 * Si aucune classe n'est concernée, alors on lui fait éviter les classes qui regroupent un attribut.
 	 */
-	override getStudentValue(entry: Entry, student: Student): {value: number; worseClasses: Class[]} {
+	override getStudentValue(entry: Entry, student: Student): StudentValue {
 		// Récupération des classes qui ne doivent pas contenir l'attribut.
 		const excludedClasses = this.getExcludedClasses(entry, this.attribute()!)
 

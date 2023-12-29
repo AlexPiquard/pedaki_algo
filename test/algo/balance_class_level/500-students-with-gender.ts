@@ -7,9 +7,7 @@ export const output = [
   {
     allemand: {
       count: [97, 100]
-    },
-    M: {count: 50},
-    F: {count: 50}
+    }
   },
   {
     allemand: {
@@ -22,9 +20,11 @@ export const output = [
         4: [16, 17],
         5: [16, 17]
       }
-    }
+    },
+    M: {count: 50},
+    F: {count: 50}
   },
-  {M: {count: [46, 54]}, F: {count: [46, 54]}},
+  {M: {count: [49, 51]}, F: {count: [49, 51]}},
   {M: {count: 50}, F: {count: 50}},
   {M: {count: 50}, F: {count: 50}},
 ]

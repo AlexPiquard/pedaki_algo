@@ -1,7 +1,7 @@
 import Class, {ClassWithIndex} from "./class.ts"
 import Algo from "./algo.ts"
 import {Student} from "./student.ts"
-import {Rule} from "./rules/rule.ts"
+import {Rule, StudentValue} from "./rules/rule.ts"
 import {Attribute} from "./attribute.ts"
 
 /**
@@ -14,6 +14,9 @@ export default class Entry {
 
 	// La valeur actuelle de cette configuration pour chaque règle. Elle est invalidée à chaque modification.
 	private _values: {[rule: string]: number} = {}
+
+	// La valeur de chaque élève pour chaque règle, invalidées à chaque modification.
+	private _studentValues: {[studentId: string]: {[rule: string]: StudentValue}} = {}
 
 	constructor(algo: Algo, classes: Class[]) {
 		this._algo = algo
@@ -63,6 +66,16 @@ export default class Entry {
 	}
 
 	/**
+	 * Obtenir la valeur d'un élève dans cette configuration, relativement à une règle.
+	 */
+	public studentValue(student: Student, rule: Rule): StudentValue {
+		if (!(student.id() in this._studentValues)) this._studentValues[student.id()] = {}
+		const index = this.algo().input().rules().indexOf(rule)
+		if (!(index in this._studentValues[student.id()])) this._studentValues[student.id()][index] = rule.getStudentValue(this, student)
+		return this._studentValues[student.id()][index]
+	}
+
+	/**
 	 * Suppression d'une classe dans cette configuration.
 	 */
 	public deleteClass(classIndex: number) {
@@ -79,6 +92,7 @@ export default class Entry {
 
 		// On invalide la valeur de la configuration puisqu'elle a changé.
 		this._values = {}
+		this._studentValues = {}
 	}
 
 	public static default(algo: Algo): Entry {
@@ -109,11 +123,8 @@ export default class Entry {
 	public moveStudents(rule: Rule): {entry: Entry; moves: number} {
 		// Cloner la configuration actuelle pour en retourner une nouvelle différente.
 		const entry = this.clone()
-		// Obtenir la liste de tous les élèves.
-		const allStudents = entry
-			.classes()
-			.map(c => c.getStudents())
-			.flat()
+		// Obtenir la liste de tous les élèves, triés par valeur décroissante.
+		const allStudents = this.algo().input().students().sort((a, b) => this.studentValue(b, rule).value - this.studentValue(a, rule).value)
 
 		// On compte le nombre de déplacements réalisés (ils ne sont réalisés que s'ils sont bénéfiques).
 		let moves = 0
@@ -136,7 +147,7 @@ export default class Entry {
 	 */
 	private getStudentBestClasses(student: Student, rule: Rule): Class[] | undefined {
 		// Récupération de la valeur de placement de l'élève, relative à la règle courante, ainsi que la liste des classes à éviter.
-		const {value, worseClasses} = rule.getStudentValue(this, student)
+		const {value, worseClasses} = this.studentValue(student, rule)
 
 		// Si l'élève est déjà bien placé, on ne fait rien de plus.
 		if (value <= 0) return undefined
@@ -149,7 +160,7 @@ export default class Entry {
 		// Ajouter des pires classes des règles précédentes.
 		for (let r of this.algo().input().rules()) {
 			if (r === rule) break
-			worseClasses.push(...r.getStudentValue(this, student).worseClasses.filter(c => !worseClasses.includes(c)))
+			worseClasses.push(...this.studentValue(student, r).worseClasses.filter(c => !worseClasses.includes(c)))
 		}
 
 		return this.classes().filter(c => !worseClasses.includes(c))
@@ -238,7 +249,8 @@ export default class Entry {
 		if (bestValue < this.value(rule)) {
 			// On applique les modifications dans cette configuration.
 			this._classes = bestEntry!.classes()
-			this._values[this.algo().input().rules().indexOf(rule)] = bestEntry!.value(rule)
+			this._values = bestEntry!._values
+			this._studentValues = bestEntry!._studentValues
 			return true
 		}
 
