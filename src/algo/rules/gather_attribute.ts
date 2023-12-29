@@ -1,5 +1,5 @@
 import Entry from "../entry.ts"
-import {Rule, StudentValue} from "./rule.ts"
+import {Rule, RuleType, StudentValue} from "./rule.ts"
 import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
 import {Attribute} from "../attribute.ts"
@@ -8,6 +8,8 @@ import {Attribute} from "../attribute.ts"
  * Regrouper un certain attribut dans un minimum de classes.
  */
 export class GatherAttributeRule extends Rule {
+	protected _ruleType = RuleType.ATTRIBUTES
+
 	constructor(rawRule: RawRule, input: Input) {
 		super(rawRule, input)
 	}

@@ -1,4 +1,4 @@
-import {Rule, StudentValue} from "./rule.ts"
+import {Rule, RuleType, StudentValue} from "./rule.ts"
 import {Input, RawRule} from "../input.ts"
 import Entry from "../entry.ts"
 import {Student} from "../student.ts"
@@ -8,6 +8,8 @@ import Class from "../class.ts"
  * Équilibrer le dénombrement de plusieurs attributs dans un maximum de classes.
  */
 export class BalanceClassCountRule extends Rule {
+	protected _ruleType = RuleType.ATTRIBUTES
+
 	constructor(rawRule: RawRule, input: Input) {
 		super(rawRule, input)
 	}

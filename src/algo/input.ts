@@ -7,6 +7,7 @@ import {BalanceCountRule} from "./rules/balance_count.ts"
 import {Attribute} from "./attribute.ts"
 import {BalanceClassCountRule} from "./rules/balance_class_count.ts"
 import {PositiveRelationshipsRule} from "./rules/positive_relationships.ts"
+import {NegativeRelationshipsRule} from "./rules/negative_relationships.ts"
 
 export interface RawInput {
 	constraints: {
@@ -57,6 +58,7 @@ const RuleOrder: {[ruleKey: string]: {rule: {new (rawRule: RawRule, input: Input
 	maximize_class_size: {rule: MaximizeClassSizeRule, priority: 2},
 	maximize_classes: {rule: MaximizeClassesRule, priority: 2},
 	positive_relationships: {rule: PositiveRelationshipsRule, priority: 2},
+	negative_relationships: {rule: NegativeRelationshipsRule, priority: 2},
 	balance_count: {rule: BalanceCountRule, priority: 1},
 	balance_class_count: {rule: BalanceClassCountRule, priority: 1},
 }
@@ -142,6 +144,20 @@ export class Input {
 		this._attributes = this.rules()
 			.map(r => r.attributes())
 			.flat()
+
+		// Définir la liste des affinités de chaque élève.
+		for (let student of Object.values(this._students)) {
+			if (!student.raw().relationships) continue
+			for (let [studentId, value] of Object.entries(student.raw().relationships!)) {
+				const otherStudent = this.student(studentId)!
+				if (!(value in student.relationships())) student.relationships()[value] = []
+				if (!(value in otherStudent.relationships())) otherStudent.relationships()[value] = []
+				if (!student.relationships()[value].includes(otherStudent))
+					student.relationships()[value].push(otherStudent)
+				if (!otherStudent.relationships()[value].includes(student))
+					otherStudent.relationships()[value].push(student)
+			}
+		}
 	}
 
 	public classSize(): number {

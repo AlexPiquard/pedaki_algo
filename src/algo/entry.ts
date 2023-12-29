@@ -1,7 +1,7 @@
 import Class, {ClassWithIndex} from "./class.ts"
 import Algo from "./algo.ts"
 import {Student} from "./student.ts"
-import {Rule, StudentValue} from "./rules/rule.ts"
+import {Rule, RuleType, StudentValue} from "./rules/rule.ts"
 import {Attribute} from "./attribute.ts"
 
 /**
@@ -71,7 +71,8 @@ export default class Entry {
 	public studentValue(student: Student, rule: Rule): StudentValue {
 		if (!(student.id() in this._studentValues)) this._studentValues[student.id()] = {}
 		const index = this.algo().input().rules().indexOf(rule)
-		if (!(index in this._studentValues[student.id()])) this._studentValues[student.id()][index] = rule.getStudentValue(this, student)
+		if (!(index in this._studentValues[student.id()]))
+			this._studentValues[student.id()][index] = rule.getStudentValue(this, student)
 		return this._studentValues[student.id()][index]
 	}
 
@@ -124,7 +125,10 @@ export default class Entry {
 		// Cloner la configuration actuelle pour en retourner une nouvelle différente.
 		const entry = this.clone()
 		// Obtenir la liste de tous les élèves, triés par valeur décroissante.
-		const allStudents = this.algo().input().students().sort((a, b) => this.studentValue(b, rule).value - this.studentValue(a, rule).value)
+		const allStudents = this.algo()
+			.input()
+			.students()
+			.sort((a, b) => this.studentValue(b, rule).value - this.studentValue(a, rule).value)
 
 		// On compte le nombre de déplacements réalisés (ils ne sont réalisés que s'ils sont bénéfiques).
 		let moves = 0
@@ -260,11 +264,21 @@ export default class Entry {
 	/**
 	 * Obtenir un échantillon d'élèves qui représente l'ensemble des cas.
 	 */
-	public getStudentSample(students: Student[]): Student[] {
-		// On supprime tous les doublons d'élèves qui ont les mêmes attributs.
+	public getStudentSample(students: Student[], toRule?: Rule): Student[] {
+		// Il faut gérer les relations si une règle correspond.
+		const handleRelationships = !!this.algo()
+			.input()
+			.rules()
+			.filter(
+				(r, i) =>
+					(!toRule || this.algo().input().rules().indexOf(toRule) >= i) &&
+					r.ruleType() === RuleType.RELATIONSHIPS
+			).length
+		// On supprime tous les doublons d'élèves qui ont les mêmes attributs aucune affinité.
 		return students.reduce((acc, cur) => {
-			// Si la liste d'attributs de cet élève n'est pas encore représentée dans la liste, on ajoute l'élève.
+			// Si la liste d'attributs de cet élève n'est pas encore représentée dans la liste, ou s'il a des affinités, on ajoute l'élève.
 			if (
+				(handleRelationships && Object.entries(cur.relationships()).length) ||
 				!acc.some(
 					s =>
 						s.attributes().length === cur.attributes().length &&
@@ -293,10 +307,10 @@ export default class Entry {
 		return true
 	}
 
-	toString(showLevel?: boolean, ...keysMask: string[]) {
+	toString(showLevel?: boolean, showIds?: boolean, ...keysMask: string[]) {
 		let str = ""
 		for (const c of this.classes()) {
-			str += "- " + c.toString(showLevel, ...keysMask) + "\n"
+			str += "- " + c.toString(showLevel, showIds, ...keysMask) + "\n"
 		}
 
 		return str

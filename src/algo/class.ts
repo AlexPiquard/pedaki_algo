@@ -99,7 +99,7 @@ export default class Class {
 	 */
 	public findBestStudentFor(entry: Entry, students: Student[], toRule?: Rule): Student {
 		// On récupère une liste réduite d'élèves, mais qui contient quand même l'ensemble des cas.
-		const sample = entry.getStudentSample(students)
+		const sample = entry.getStudentSample(students, toRule)
 		let bestValues: number[] | undefined = undefined
 		let bestStudent: Student | undefined = undefined
 
@@ -146,7 +146,10 @@ export default class Class {
 			.length
 	}
 
-	toString(showLevel?: boolean, ...keysMask: string[]) {
+	toString(showLevel?: boolean, showIds?: boolean, ...keysMask: string[]) {
+		let str = `Class{students: ${this.students.length}, `
+		if (showIds) return str + `ids: (${this.students.map(s => s.id())})}`
+
 		const attributeCount: {[attribute: string]: number} = {}
 		const levelCount: {[attribute: string]: {[level: number]: number}} = {}
 
@@ -157,8 +160,6 @@ export default class Class {
 				levelCount[attribute][level] = levelCount[attribute][level] ? levelCount[attribute][level] + 1 : 1
 			}
 		}
-
-		let str = `Class{students: ${this.students.length}, `
 
 		for (const [option, count] of Object.entries(attributeCount)) {
 			if (!keysMask.includes(option)) continue

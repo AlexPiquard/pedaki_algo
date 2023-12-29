@@ -1,4 +1,4 @@
-import {Rule, StudentValue} from "./rule.ts"
+import {Rule, RuleType, StudentValue} from "./rule.ts"
 import Entry from "../entry.ts"
 import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
@@ -8,6 +8,8 @@ import {Input, RawRule} from "../input.ts"
  * Règle inverse de "maximize_classes", ne peut pas être utilisé en même temps.
  */
 export class MaximizeClassSizeRule extends Rule {
+	protected _ruleType = RuleType.CONSTRAINTS
+
 	constructor(rawRule: RawRule, input: Input) {
 		super(rawRule, input)
 	}

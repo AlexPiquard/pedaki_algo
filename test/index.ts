@@ -22,6 +22,7 @@ export type Module = {
 	// Pourcentage minimum de respect de chaque règle, d'après l'indice après tri.
 	respectPercents?: number[]
 	showLevel?: boolean
+	showIds?: boolean
 	description?: string
 }
 const __filename = url.fileURLToPath(import.meta.url)
@@ -29,7 +30,7 @@ const __dirname = path.dirname(__filename)
 
 describe("get classes from input", function () {
 	fixtures(__dirname, "algo", async ({module}: {module: Module}) => {
-		let {studentsFile, inputFile, keysMask = [], output, respectPercents, showLevel} = module
+		let {studentsFile, inputFile, keysMask = [], output, respectPercents, showLevel, showIds,} = module
 
 		return Promise.all([
 			Promise.resolve(import(studentsFile, {assert: {type: "json"}})),
@@ -45,7 +46,7 @@ describe("get classes from input", function () {
 			for (const [i, {respect_percent}] of Object.entries(rules)) {
 				console.log(`respect percent of rule ${i}: ${respect_percent}`)
 			}
-			console.log(entry.toString(showLevel, ...keysMask))
+			console.log(entry.toString(showLevel, showIds, ...keysMask))
 
 			if (respectPercents) {
 				for (const [i, {respect_percent}] of Object.entries(rules)) {

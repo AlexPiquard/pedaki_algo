@@ -7,9 +7,17 @@ import {Attribute} from "../attribute.ts"
 
 export type StudentValue = {value: number; worseClasses: Class[]}
 
+export enum RuleType {
+	ATTRIBUTES,
+	RELATIONSHIPS,
+	CONSTRAINTS
+}
+
 export abstract class Rule {
 	private readonly rule: RawRule
 	private readonly _attributes: Attribute[]
+
+	protected abstract _ruleType: RuleType
 
 	protected constructor(rule: RawRule, input: Input) {
 		this.rule = rule
@@ -43,6 +51,13 @@ export abstract class Rule {
 	 */
 	public key() {
 		return this.rule.rule
+	}
+
+	/**
+	 * Obtenir le type de la règle.
+	 */
+	public ruleType() {
+		return this._ruleType
 	}
 
 	/**

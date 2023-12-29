@@ -1,5 +1,5 @@
 import Entry from "../entry.ts"
-import {Rule, StudentValue} from "./rule.ts"
+import {Rule, RuleType, StudentValue} from "./rule.ts"
 import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
 import {Attribute} from "../attribute.ts"
@@ -10,6 +10,8 @@ import {Attribute} from "../attribute.ts"
  * C'est une règle complémentaire qui ne peut pas exister seule.
  */
 export class BalanceCountRule extends Rule {
+	protected _ruleType = RuleType.ATTRIBUTES
+
 	constructor(rawRule: RawRule, input: Input) {
 		super(rawRule, input)
 	}
