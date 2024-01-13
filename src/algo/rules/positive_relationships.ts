@@ -15,18 +15,7 @@ export class PositiveRelationshipsRule extends Rule {
 	}
 
 	/**
-	 * Somme des valeurs de chaque élève.
-	 */
-	override getEntryValue(entry: Entry): number {
-		return entry
-			.algo()
-			.input()
-			.students()
-			.map(s => entry.studentValue(s, this).value)
-			.reduce((acc, cur) => acc + cur)
-	}
-
-	/**
+	 * @inheritDoc
 	 * La valeur correspond au nombre de relations positives non respectées.
 	 * Les pires classes sont alors celles ne respectant pas non plus les relations.
 	 */

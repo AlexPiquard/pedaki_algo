@@ -25,10 +25,12 @@ export default class Class {
 	}
 
 	/**
-	 * Obtenir le nombre d'élèves qui possède un certain attribut dans la classe.
+	 * Obtenir le nombre d'élèves qui possèdent certains attributs dans la classe.
 	 */
-	public count(attribute: Attribute | number): number {
-		return this.attributesCount[typeof attribute === "number" ? attribute : attribute.key()] ?? 0
+	public count(...attributes: (Attribute | number)[]): number {
+		return attributes
+			.map(attribute => this.attributesCount[typeof attribute === "number" ? attribute : attribute.key()] ?? 0)
+			.reduce((acc, cur) => acc + cur)
 	}
 
 	/**

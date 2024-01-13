@@ -22,6 +22,7 @@ export class MaximizeClassesRule extends Rule {
 	}
 
 	/**
+	 * @inheritDoc
 	 * La valeur correspond au nombre d'élèves dans la classe, il en faut le moins possible.
 	 * Les pires classe sont alors celles qui ont plus d'élèves que celle actuelle, ou toutes si on n'a pas atteint le nombre maximum de classes.
 	 */

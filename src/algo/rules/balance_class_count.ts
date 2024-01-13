@@ -6,6 +6,7 @@ import Class from "../class.ts"
 
 /**
  * Équilibrer le dénombrement de plusieurs attributs dans un maximum de classes.
+ * Elle est faite après les répartitions d'attributs.
  */
 export class BalanceClassCountRule extends Rule {
 	protected _ruleType = RuleType.ATTRIBUTES
@@ -39,7 +40,8 @@ export class BalanceClassCountRule extends Rule {
 	}
 
 	/**
-	 * La valeur correspond à différence totale de dénombrement de chaque attribut de l'élève sa classe.
+	 * @inheritDoc
+	 * La valeur correspond à la différence totale de dénombrement de chaque attribut de l'élève dans sa classe.
 	 */
 	override getStudentValue(entry: Entry, student: Student): StudentValue {
 		const c = entry.searchStudent(student)?.class!

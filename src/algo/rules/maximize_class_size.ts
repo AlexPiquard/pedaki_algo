@@ -26,6 +26,7 @@ export class MaximizeClassSizeRule extends Rule {
 	}
 
 	/**
+	 * @inheritDoc
 	 * La valeur retournée correspond au nombre de places vides dans la classe.
 	 * Les pires classe sont alors toutes celles qui ont moins d'élèves que celle actuelle.
 	 */

@@ -5,7 +5,7 @@
   },
   "rules": [
     {
-      "rule": "gather_attribute",
+      "rule": "gather_attributes",
       "priority": 1,
       "attributes": [
         {
@@ -14,7 +14,7 @@
       ]
     },
     {
-      "rule": "gather_attribute",
+      "rule": "gather_attributes",
       "priority": 1,
       "attributes": [
         {
@@ -23,7 +23,7 @@
       ]
     },
     {
-      "rule": "gather_attribute",
+      "rule": "gather_attributes",
       "priority": 1,
       "attributes": [
         {

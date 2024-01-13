@@ -7,7 +7,7 @@ import {Attribute} from "../attribute.ts"
 /**
  * Répartir équitablement le nombre d'élèves dans chaque classe.
  * Si un attribut est associée à la règle, alors seulement cet attribut sera pris en compte.
- * C'est une règle complémentaire qui ne peut pas exister seule.
+ * Elle est faite après les répartitions d'attributs.
  */
 export class BalanceCountRule extends Rule {
 	protected _ruleType = RuleType.ATTRIBUTES

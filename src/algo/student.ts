@@ -78,8 +78,14 @@ export class Student {
 		return this._attributes
 	}
 
-	public hasAttribute(attribute: Attribute): boolean {
-		return this._attributes?.includes(attribute) ?? false
+	/**
+	 * Savoir si l'élève possède au moins un attribut parmi une liste.
+	 */
+	public hasAttribute(...attributes: Attribute[]): boolean {
+		for (let attribute of attributes) {
+			if (this._attributes?.includes(attribute)) return true
+		}
+		return false
 	}
 
 	public relationships() {

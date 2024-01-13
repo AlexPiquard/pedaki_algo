@@ -274,7 +274,7 @@ export default class Entry {
 					(!toRule || this.algo().input().rules().indexOf(toRule) >= i) &&
 					r.ruleType() === RuleType.RELATIONSHIPS
 			).length
-		// On supprime tous les doublons d'élèves qui ont les mêmes attributs aucune affinité.
+		// On supprime tous les doublons d'élèves qui ont les mêmes attributs sans affinité.
 		return students.reduce((acc, cur) => {
 			// Si la liste d'attributs de cet élève n'est pas encore représentée dans la liste, ou s'il a des affinités, on ajoute l'élève.
 			if (

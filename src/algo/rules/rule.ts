@@ -10,7 +10,7 @@ export type StudentValue = {value: number; worseClasses: Class[]}
 export enum RuleType {
 	ATTRIBUTES,
 	RELATIONSHIPS,
-	CONSTRAINTS
+	CONSTRAINTS,
 }
 
 export abstract class Rule {
@@ -62,8 +62,16 @@ export abstract class Rule {
 
 	/**
 	 * Retourne une valeur pour une certaine configuration, relative à cette règle.
+	 * Par défaut, on retourne la somme des valeurs de chaque élève.
 	 */
-	public abstract getEntryValue(entry: Entry): number
+	public getEntryValue(entry: Entry): number {
+		return entry
+			.algo()
+			.input()
+			.students()
+			.map(s => entry.studentValue(s, this).value)
+			.reduce((acc, cur) => acc + cur)
+	}
 
 	/**
 	 * Retourne une valeur relative à un élève et cette règle, correspondant à son placement actuel.

@@ -2,7 +2,7 @@ import {Rule, RuleType, StudentValue} from "./rule.ts"
 import Entry from "../entry.ts"
 import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
-import Class from "../class.ts";
+import Class from "../class.ts"
 
 /**
  * Respecter les relations négatives entre élèves qui ne veulent pas être dans la même classe.
@@ -15,18 +15,7 @@ export class NegativeRelationshipsRule extends Rule {
 	}
 
 	/**
-	 * Somme des valeurs de chaque élève.
-	 */
-	override getEntryValue(entry: Entry): number {
-		return entry
-			.algo()
-			.input()
-			.students()
-			.map(s => entry.studentValue(s, this).value)
-			.reduce((acc, cur) => acc + cur)
-	}
-
-	/**
+	 * @inheritDoc
 	 * La valeur correspond au nombre de relations négatives non respectées.
 	 * Les pires classes sont alors celles ne respectant pas non plus les relations.
 	 */
