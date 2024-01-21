@@ -95,4 +95,18 @@ export class Student {
 	public raw() {
 		return this.student
 	}
+
+	/**
+	 * Obtention d'une clé représentant une liste d'attributs.
+	 */
+	public attributesKey(...ignore: Attribute[]): string {
+		let key = ""
+		for (let attribute of this.attributes()) {
+			if (ignore.includes(attribute)) continue
+			if (key.length) key += "-"
+			key += attribute.key()
+		}
+
+		return key
+	}
 }

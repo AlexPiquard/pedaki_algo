@@ -6,12 +6,17 @@ import * as assert from "assert"
 import Class from "../src/algo/class.ts"
 
 // Classe modèle ayant pour but d'être comparée à une véritable classe pour déterminer leur égalité.
-export type OutputClass = {
-	[attribute: string]: {
-		count: number
-		levels?: number[]
-	}
+type OptionValueOutputClass = {
+	count: number
+	levels?: number[]
 }
+type OptionOutputClass = {
+	[option: string]: OptionValueOutputClass
+}
+type IdOutputClass = {
+	ids?: number[][]
+}
+export type OutputClass = {total?: string} & OptionOutputClass & IdOutputClass
 
 export type Module = {
 	studentsFile: string
@@ -110,22 +115,38 @@ const isClassValid = (c: Class, model: OutputClass): boolean => {
 		return false
 	}
 
-	for (const [attribute, value] of Object.entries(model)) {
-		// S'il s'agit de la clé indiquant le dénombrement global, c'est uniquement ça que l'on compare.
-		if (attribute === "total") {
-			if (isValueDifferent(c.getStudents().length, value)) return false
-			continue
-		}
-
+	// Vérifier qu'une option correspond à sa description.
+	const optionDiffers = (option: string, value: OptionValueOutputClass): boolean => {
 		// Comparaison du dénombrement de l'option (ou genre ou extra).
-		if (isValueDifferent(c.manualCount(attribute), value.count)) return false
+		if (isValueDifferent(c.manualCount(option), value.count)) return true
 
 		// Comparaison du dénombrement de chaque niveau.
 		if (value.levels) {
 			for (const [level, count] of Object.entries(value.levels)) {
-				if (isValueDifferent(c.manualCount(attribute, level), count)) return false
+				if (isValueDifferent(c.manualCount(option, level), count)) return true
 			}
 		}
+
+		return false
+	}
+
+	for (const [key, value] of Object.entries(model)) {
+		// S'il s'agit de la clé indiquant le dénombrement global, c'est uniquement ça que l'on compare.
+		if (key === "total") {
+			if (isValueDifferent(c.getStudents().length, value)) return false
+			continue
+		}
+
+		// S'il s'agit de la clé de comparaison des identifiants, ce sont uniquement eux que l'on compare.
+		if (key === "ids") {
+			// Si aucune liste d'identifiants ne correspond, alors la classe n'est pas valide.
+			const studentIds = c.getStudents().map(student => parseInt(student.id()))
+			if (!(value as number[][]).find(ids => studentIds.length === ids.length && !ids.find(id => !studentIds.includes(id)))) return false
+			continue
+		}
+
+		// On vérifie que la description de l'option correspond.
+		if (optionDiffers(key, value as OptionValueOutputClass)) return false
 	}
 
 	return true

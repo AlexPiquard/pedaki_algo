@@ -1,7 +1,6 @@
-import Entry from "../entry.ts"
+import Entry, {StudentWithClass} from "../entry.ts"
 import Class from "../class.ts"
 import {Input, RawRule} from "../input.ts"
-import {Student} from "../student.ts"
 import {DEFAULT_PRIORITY} from "../algo.ts"
 import {Attribute} from "../attribute.ts"
 
@@ -16,12 +15,14 @@ export enum RuleType {
 export abstract class Rule {
 	private readonly rule: RawRule
 	private readonly _attributes: Attribute[]
+	private readonly _initialIndex: number
 
 	protected abstract _ruleType: RuleType
 
 	protected constructor(rule: RawRule, input: Input) {
 		this.rule = rule
 		this._attributes = rule.attributes?.map(a => new Attribute(a, input)) ?? []
+		this._initialIndex = input.raw().rules.indexOf(rule)
 	}
 
 	/**
@@ -54,6 +55,13 @@ export abstract class Rule {
 	}
 
 	/**
+	 * Obtenir l'indice initial de cette règle dans la liste donnée.
+	 */
+	public initialIndex(): number {
+		return this._initialIndex
+	}
+
+	/**
 	 * Obtenir le type de la règle.
 	 */
 	public ruleType() {
@@ -66,10 +74,8 @@ export abstract class Rule {
 	 */
 	public getEntryValue(entry: Entry): number {
 		return entry
-			.algo()
-			.input()
-			.students()
-			.map(s => entry.studentValue(s, this).value)
+			.getStudents()
+			.map(student => entry.studentValue(student, this).value)
 			.reduce((acc, cur) => acc + cur)
 	}
 
@@ -77,21 +83,16 @@ export abstract class Rule {
 	 * Retourne une valeur relative à un élève et cette règle, correspondant à son placement actuel.
 	 * Retourne également la liste des classes dans lesquels il ne doit pas être déplacé.
 	 */
-	public abstract getStudentValue(entry: Entry, student: Student): StudentValue
+	public abstract getStudentValue(entry: Entry, student: StudentWithClass): StudentValue
 
 	/**
 	 * Obtenir le pourcentage de respect de cette règle pour une certaine configuration.
 	 * Correspond au nombre d'élèves bien placés par rapport au nombre total.
-	 * Si la valeur de la configuration est 0, alors le pourcentage est en revanche forcément 100.
 	 */
 	public getRespectPercent(entry: Entry): number {
-		if (this.getEntryValue(entry) <= 0) return 1
 		const percent =
-			entry
-				.algo()
-				.input()
-				.students()
-				.filter(s => entry.studentValue(s, this).value <= 0).length / entry.algo().input().students().length
+			entry.getStudents().filter(student => entry.studentValue(student, this).value <= 0).length /
+			entry.algo().input().students().length
 		return Math.round(percent * 100) / 100
 	}
 

@@ -98,33 +98,35 @@ export default class Class {
 	/**
 	 * Trouver l'élève idéal pour aller dans cette classe.
 	 * Doit prendre en compte les précédentes règles et leur priorité.
+	 * On peut donner une liste d'élèves dont les équivalents seront ignorés.
 	 */
-	public findBestStudentFor(entry: Entry, students: Student[], toRule?: Rule): Student {
+	public findBestStudentFor(entry: Entry, students: Student[], toRule?: Rule, ...ignoreStudents: Student[]): Student {
 		// On récupère une liste réduite d'élèves, mais qui contient quand même l'ensemble des cas.
-		const sample = entry.getStudentSample(students, toRule)
+		const sample = entry.getStudentSample(students, toRule, ...ignoreStudents)
 		let bestValues: number[] | undefined = undefined
 		let bestStudent: Student | undefined = undefined
 
 		// On teste le nombre de règles respectées pour chaque élève, s'il est déplacé dans la classe.
+		const classIndex = entry.classes().indexOf(this)
 		for (const studentIndex in sample) {
 			const student = sample[studentIndex]
+			const studentInitialClass = entry.studentClass(student)!
 
 			// On effectue le déplacement de l'élève dans cette classe.
-			const newEntry = entry.clone()
-			newEntry.moveStudent(student, newEntry.searchStudent(student)!, {
-				class: newEntry.class(entry.classes().indexOf(this))!,
-				index: entry.classes().indexOf(this),
+			entry.moveStudent(student, {
+				class: this,
+				index: classIndex,
 			})
 
 			const values: number[] = []
-			for (let index in newEntry.algo().input().rules()) {
-				const rule = newEntry.algo().input().rules()[index]
+			for (const index in entry.algo().input().rules()) {
+				const rule = entry.algo().input().rules()[index]
 
 				// Si la valeur est déjà supérieure à la meilleure, on abandonne cette configuration.
-				if (bestValues && newEntry.value(rule) > bestValues[index]) break
+				if (bestValues && entry.value(rule) > bestValues[index]) break
 
 				// On définit la valeur de cette règle avec cette configuration.
-				values[index] = newEntry.value(rule)
+				values[index] = entry.value(rule)
 
 				// Si on a atteint la règle limite, on ne va pas plus loin pour cette configuration.
 				if (rule === toRule) break
@@ -134,6 +136,9 @@ export default class Class {
 				bestValues = values
 				bestStudent = student
 			}
+
+			// On annule le déplacement.
+			entry.moveStudent(student, studentInitialClass)
 		}
 
 		return bestStudent!

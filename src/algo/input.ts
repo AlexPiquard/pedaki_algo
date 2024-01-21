@@ -174,4 +174,8 @@ export class Input {
 	public maxLevel(): number {
 		return this._maxLevel
 	}
+
+	public raw(): RawInput {
+		return this.input
+	}
 }

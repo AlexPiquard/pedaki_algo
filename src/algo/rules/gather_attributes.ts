@@ -1,6 +1,5 @@
-import Entry from "../entry.ts"
+import Entry, {StudentWithClass} from "../entry.ts"
 import {Rule, RuleType, StudentValue} from "./rule.ts"
-import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
 import {Attribute} from "../attribute.ts"
 
@@ -27,22 +26,19 @@ export class GatherAttributesRule extends Rule {
 	 * L'élève peut être déplacé dans les classes qui regroupent un ou plusieurs de ses attributs.
 	 * Si aucune classe n'est concernée, alors on lui fait éviter les classes qui regroupent un attribut.
 	 */
-	override getStudentValue(entry: Entry, student: Student): StudentValue {
+	override getStudentValue(entry: Entry, student: StudentWithClass): StudentValue {
 		// Récupération des classes qui ne doivent pas contenir les attributs.
 		const excludedClasses = this.getExcludedClasses(entry)
 
-		// Récupération de l'identifiant de la classe actuelle de l'élève.
-		const studentClassIndex = entry.searchStudent(student)?.index?.toString()!
-
 		// S'il a l'un des attributs, il ne doit pas être dans une classe qui ne les regroupe pas.
-		if (student.hasAttribute(...this.attributes())) {
+		if (student.student.hasAttribute(...this.attributes())) {
 			// S'il est dans une classe qui regroupe les attributs, il est déjà bien placé.
 			// Sinon, on retourne le nombre d'élèves bien placés (s'il est le seul mal placé, il est vraiment très mal placé).
 			// Les pires classes sont celles qui ne regroupent pas les attributs.
 			return {
-				value: !(studentClassIndex in excludedClasses)
+				value: !(student.studentClass.index.toString() in excludedClasses)
 					? 0
-					: entry.algo().input().classSize() - excludedClasses[studentClassIndex],
+					: entry.algo().input().classSize() - excludedClasses[student.studentClass.index.toString()],
 				worseClasses: Object.keys(excludedClasses).map(classKey => entry.class(classKey)!),
 			}
 		}

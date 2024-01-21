@@ -1,6 +1,5 @@
 import {Rule, RuleType, StudentValue} from "./rule.ts"
-import Entry from "../entry.ts"
-import {Student} from "../student.ts"
+import Entry, {StudentWithClass} from "../entry.ts"
 import {Input, RawRule} from "../input.ts"
 
 /**
@@ -30,13 +29,12 @@ export class MaximizeClassSizeRule extends Rule {
 	 * La valeur retournée correspond au nombre de places vides dans la classe.
 	 * Les pires classe sont alors toutes celles qui ont moins d'élèves que celle actuelle.
 	 */
-	override getStudentValue(entry: Entry, student: Student): StudentValue {
-		// Récupération de l'identifiant de la classe actuelle de l'élève.
-		const studentClass = entry.searchStudent(student)?.class!
-
+	override getStudentValue(entry: Entry, student: StudentWithClass): StudentValue {
 		return {
-			value: entry.algo().input().classSize() - studentClass.getStudents().length,
-			worseClasses: entry.classes().filter(c => c.getStudents().length < studentClass.getStudents().length),
+			value: entry.algo().input().classSize() - student.studentClass.class.getStudents().length,
+			worseClasses: entry
+				.classes()
+				.filter(c => c.getStudents().length < student.studentClass.class.getStudents().length),
 		}
 	}
 }

@@ -1,6 +1,5 @@
-import Entry from "../entry.ts"
+import Entry, {StudentWithClass} from "../entry.ts"
 import {Rule, RuleType, StudentValue} from "./rule.ts"
-import {Student} from "../student.ts"
 import {Input, RawRule} from "../input.ts"
 import {Attribute} from "../attribute.ts"
 
@@ -40,16 +39,13 @@ export class BalanceCountRule extends Rule {
 	 * Pénalisation de la valeur si l'élève possède un attribut déjà trop présent dans sa classe.
 	 * Il ne doit pas être déplacé dans les classes qui ont trop l'attribut si lui ne l'a pas, et inversement.
 	 */
-	override getStudentValue(entry: Entry, student: Student): StudentValue {
+	override getStudentValue(entry: Entry, student: StudentWithClass): StudentValue {
 		// Récupération de l'objectif de nombre d'élèves concernés.
 		const countGoal = this.getCountPerClass(entry, this.attribute())
 
 		// On récupère la différence entre nombre d'élèves concernés dans sa classe et l'objectif.
-		const diff = this.getDifference(
-			this.getRelatedStudentsOfClass(entry, entry.searchStudent(student)!.index),
-			countGoal
-		)
-		const hasAndMore = diff > 0 && (!this.attribute() || student.hasAttribute(this.attribute()!))
+		const diff = this.getDifference(this.getRelatedStudentsOfClass(entry, student.studentClass.index), countGoal)
+		const hasAndMore = diff > 0 && (!this.attribute() || student.student.hasAttribute(this.attribute()!))
 
 		// On n'attribue pas de mauvaise valeur à ceux qui ont un faible niveau dans une classe trop faible,
 		// parce qu'on n'est pas sûr qu'il sera échangé avec quelqu'un du même attribut, il y a trop de risques de tout casser.
@@ -57,7 +53,9 @@ export class BalanceCountRule extends Rule {
 			value: hasAndMore ? Math.abs(diff) : 0,
 			worseClasses: entry.classes().filter((_c, classKey) => {
 				const classDiff = this.getDifference(this.getRelatedStudentsOfClass(entry, classKey), countGoal)
-				return !this.attribute() || student.hasAttribute(this.attribute()!) ? classDiff > 0 : classDiff < 0
+				return !this.attribute() || student.student.hasAttribute(this.attribute()!)
+					? classDiff > 0
+					: classDiff < 0
 			}),
 		}
 	}

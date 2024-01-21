@@ -1,6 +1,5 @@
 import {Rule, RuleType, StudentValue} from "./rule.ts"
-import Entry from "../entry.ts"
-import {Student} from "../student.ts"
+import Entry, {StudentWithClass} from "../entry.ts"
 import {Input, RawRule} from "../input.ts"
 
 /**
@@ -19,18 +18,17 @@ export class PositiveRelationshipsRule extends Rule {
 	 * La valeur correspond au nombre de relations positives non respectées.
 	 * Les pires classes sont alors celles ne respectant pas non plus les relations.
 	 */
-	override getStudentValue(entry: Entry, student: Student): StudentValue {
+	override getStudentValue(entry: Entry, student: StudentWithClass): StudentValue {
 		let value = 0
 		const worseClasses = [...entry.classes()]
-		const studentClassIndex = entry.searchStudent(student)?.index!
-		for (const [relationValue, otherStudents] of Object.entries(student.relationships())) {
+		for (const [relationValue, otherStudents] of Object.entries(student.student.relationships())) {
 			// On ne prend en compte que les relations positives.
 			if (parseInt(relationValue) <= 0) continue
 
 			for (const otherStudent of otherStudents) {
-				const otherStudentClassIndex = entry.searchStudent(otherStudent)?.index!
+				const otherStudentClassIndex = entry.studentClass(otherStudent)?.index!
 				// S'ils ne sont pas dans la même classe alors qu'il s'agit d'une relation positive...
-				if (studentClassIndex != otherStudentClassIndex) value += parseInt(relationValue)
+				if (student.studentClass.index != otherStudentClassIndex) value += parseInt(relationValue)
 
 				// Il doit aller dans cette classe, donc on la retire de celles exclues, si ce n'est pas déjà fait.
 				const currentIndex = worseClasses.indexOf(entry.class(otherStudentClassIndex)!)

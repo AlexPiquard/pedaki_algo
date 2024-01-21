@@ -26,19 +26,19 @@ export default class Algo {
 
 	public solve(): Result {
 		const startTime = Date.now()
-		let entry = Entry.default(this)
-		let result: Partial<Result> = {}
+		const entry = Entry.default(this)
+		const result: Partial<Result> = {}
 
 		// On fait respecter chaque règle en respectant l'ordre de priorité.
-		for (let rule of this.input().rules()) {
+		for (const rule of this.input().rules()) {
 			// On effectue les déplacements jusqu'à ce que cette règle soit respectée, ou que plus aucun déplacement ne soit possible.
 			let moves = Number.MAX_VALUE
 			while (entry.value(rule) > 0 && moves > 0) {
 				// On effectue les déplacements voulus por la règle courante.
-				;({entry, moves} = entry.moveStudents(rule))
+				moves = entry.moveStudents(rule)
 			}
 			if (!result.rules) result.rules = []
-			result.rules.push({respect_percent: rule.getRespectPercent(entry)})
+			result.rules[rule.initialIndex()] = {respect_percent: rule.getRespectPercent(entry)}
 		}
 
 		result.entry = entry
